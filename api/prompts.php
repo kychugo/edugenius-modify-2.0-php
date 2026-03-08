@@ -11,7 +11,7 @@ function getSystemPrompt(string $subject, string $mode): string {
         'guideLearning' => 'guide',
     ];
 
-    $mode = $modeAliases[$mode] ?? $mode;
+    $mode = isset($modeAliases[$mode]) ? $modeAliases[$mode] : $mode;
 
     $prompts = [
         '中文' => [
