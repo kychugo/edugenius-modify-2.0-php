@@ -5,8 +5,10 @@ RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^(.+)\.html$ $1.php [L,R=301]
 
-# ── Block direct access to sensitive PHP files ────────────────────────────
-<FilesMatch "^(config|api/auth_helper)\.php$">
+# ── Block direct browser access to sensitive PHP files ────────────────────
+# FilesMatch compares against filename only (not path), so these match
+# regardless of directory depth.
+<FilesMatch "^(config|auth_helper|db_init|prompts)\.php$">
     Require all denied
 </FilesMatch>
 
