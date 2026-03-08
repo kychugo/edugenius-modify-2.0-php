@@ -1,0 +1,20 @@
+{
+ "name": "EduGenius Al 智學",
+ "short_name": "EduGenius",
+ "start_url": ".",
+ "display": "standalone",
+ "background_color": "#ffffff",
+ "theme_color": "#4a90e2",
+ "icons": [
+   {
+     "src": "https://i.ibb.co/gMQh9L2S/Edu-Genius-AI.png",
+     "sizes": "192x192",
+     "type": "image/png"
+   },
+   {
+     "src": "https://i.ibb.co/gMQh9L2S/Edu-Genius-AI.png",
+     "sizes": "512x512",
+     "type": "image/png"
+   }
+ ]
+}

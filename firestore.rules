@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── User History ───────────────────────────────────────────────────────
+    // Each authenticated user can only read, write, and delete their own
+    // history sessions. No other user (or anonymous caller) can access them.
+    //
+    // Collection path: users/{userId}/history/{sessionId}
+    //
+    // Document shape:
+    //   tool        : string  – human-readable tool name
+    //   subject     : string  – subject / language
+    //   page        : string  – page identifier (index, coding, exam, …)
+    //   summary     : string  – first user message (max 100 chars)
+    //   messages    : array   – [{role, content, timestamp}]
+    //   createdAt   : timestamp
+    //   updatedAt   : timestamp
+    // ────────────────────────────────────────────────────────────────────────
+    match /users/{userId}/history/{sessionId} {
+
+      // Read (get / list) – only the owning user
+      allow read: if request.auth != null
+                  && request.auth.uid == userId;
+
+      // Create – only the owning user; basic shape validation
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.data.tool     is string
+                    && request.resource.data.subject  is string
+                    && request.resource.data.summary  is string
+                    && request.resource.data.messages is list
+                    && request.resource.data.messages.size() >= 1
+                    && request.resource.data.messages.size() <= 200;
+
+      // Update – only the owning user; cap messages array at 200 entries
+      allow update: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.data.messages is list
+                    && request.resource.data.messages.size() <= 200;
+
+      // Delete – only the owning user
+      allow delete: if request.auth != null
+                    && request.auth.uid == userId;
+    }
+
+    // Deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
