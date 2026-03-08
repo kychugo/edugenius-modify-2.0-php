@@ -1589,7 +1589,7 @@
                 if (!['http:', 'https:'].includes(parsed.protocol)) return '';
                 if (parsed.username || parsed.password) return '';
                 const host = parsed.hostname.toLowerCase();
-                const isPrivateIpv4 = /^(127\.|10\.|192\.168\.|169\.254\.|0\.0\.0\.0$)/.test(host)
+                const isPrivateIpv4 = /^(127\.|10\.|192\.168\.|169\.254\.|0\.0\.0\.0)/.test(host)
                     || /^172\.(1[6-9]|2\d|3[0-1])\./.test(host);
                 const isPrivateIpv6 = host === '::1'
                     || host === '::'
@@ -1607,16 +1607,21 @@
             return String(text ?? '').match(/https?:\/\/[^\s<>"'{}|\\^`]+/gi) || [];
         }
 
+        // Match Markdown link/image URLs while still allowing parentheses inside the URL itself.
+        const MARKDOWN_URL_PATTERN = '((?:https?:\\/\\/[^\\s()]|\\([^\\s()]*\\))+)(?:\\s+"[^"]*")?';
+
         function buildSourceArticleContext(article) {
             if (!article?.content) return '';
+            const safeSourceUrl = sanitizeHttpUrl(article.source_url || '');
+            const safeImageUrl = sanitizeHttpUrl(article.image_url || '');
             const parts = [
                 '',
                 '[Source article content retrieved from the provided URL]',
                 `Title: ${article.title || 'Source Article'}`,
-                `Source URL: ${article.source_url || ''}`
+                `Source URL: ${safeSourceUrl}`
             ];
-            if (article.image_url) {
-                parts.push(`Main image URL: ${article.image_url}`);
+            if (safeImageUrl) {
+                parts.push(`Main image URL: ${safeImageUrl}`);
             }
             parts.push('Full article content:');
             parts.push(article.content);
@@ -1657,7 +1662,7 @@
 
             const messageDiv = document.createElement('div');
             const safeTitle = escapeHTML(article.title || 'Source Article');
-            const safeContent = escapeHTML(article.content).replace(/\n/g, '<br>');
+            const safeContent = escapeHTML(article.content);
             const safeSourceUrl = sanitizeHttpUrl(article.source_url || '');
             const safeImageUrl = sanitizeHttpUrl(article.image_url || '');
 
@@ -1675,12 +1680,12 @@
                             ${safeSourceUrl ? `
                                 <p class="text-xs mb-3">
                                     <a href="${safeSourceUrl}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;word-break:break-all">
-                                        ${escapeHTML(safeSourceUrl)}
+                                        ${safeSourceUrl}
                                     </a>
                                 </p>` : ''}
                             ${safeImageUrl ? `
                                 <img src="${safeImageUrl}" alt="${safeTitle}" class="w-full max-h-80 object-cover rounded-xl mb-3" referrerpolicy="no-referrer">` : ''}
-                            <div class="text-sm leading-7" style="color:var(--text-primary);white-space:normal;word-break:break-word">${safeContent}</div>
+                            <div class="text-sm leading-7" style="color:var(--text-primary);white-space:pre-wrap;word-break:break-word">${safeContent}</div>
                         </div>
                     </div>
                 </div>
@@ -2413,12 +2418,12 @@
             function applyInline(s) {
                 const escaped = escapeHTML(s);
                 return escaped
-                    .replace(/!\[([^\]]*)\]\(((?:https?:\/\/[^\s()]|\([^\s()]*\))+)(?:\s+"[^"]*")?\)/g, (_, alt, url) => {
+                    .replace(new RegExp(`!\\[([^\\]]*)\\]\\(${MARKDOWN_URL_PATTERN}\\)`, 'g'), (_, alt, url) => {
                         const safeUrl = sanitizeHttpUrl(url);
                         if (!safeUrl) return alt;
                         return `<img src="${safeUrl}" alt="${alt}" class="w-full max-h-80 object-cover rounded-xl my-3" referrerpolicy="no-referrer">`;
                     })
-                    .replace(/\[([^\]]+)\]\(((?:https?:\/\/[^\s()]|\([^\s()]*\))+)(?:\s+"[^"]*")?\)/g, (_, label, url) => {
+                    .replace(new RegExp(`\\[([^\\]]+)\\]\\(${MARKDOWN_URL_PATTERN}\\)`, 'g'), (_, label, url) => {
                         const safeUrl = sanitizeHttpUrl(url);
                         if (!safeUrl) return label;
                         return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="underline" style="color:#2563eb">${label}</a>`;

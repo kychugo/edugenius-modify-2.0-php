@@ -1,8 +1,11 @@
 <?php
 
+const MAX_ARTICLE_DOWNLOAD_BYTES = 2 * 1024 * 1024;
+const MAX_ARTICLE_CONTENT_LENGTH = 12000;
+
 function extractFirstHttpUrl(string $text): ?string
 {
-    if (preg_match('~https?://[^\s<>"\']+~i', $text, $matches)) {
+    if (preg_match('~https?://[^\s<>"\'{}|\\\\^`]+~i', $text, $matches)) {
         return $matches[0];
     }
 
@@ -132,7 +135,8 @@ function fetchArticleDetails(string $url): ?array
         return null;
     }
 
-    $maxBytes = 2 * 1024 * 1024;
+    // Cap upstream HTML downloads to keep article fetches lightweight and avoid memory abuse.
+    $maxBytes = MAX_ARTICLE_DOWNLOAD_BYTES;
     $body = '';
 
     $ch = curl_init($url);
@@ -264,7 +268,8 @@ function extractArticleText(DOMXPath $xpath): string
         $bestText = implode("\n\n", array_slice($paragraphs, 0, 25));
     }
 
-    return mb_substr(trim($bestText), 0, 12000);
+    // Limit the extracted article body so the chat UI stays usable and AI prompts remain within token budget.
+    return mb_substr(trim($bestText), 0, MAX_ARTICLE_CONTENT_LENGTH);
 }
 
 function collectParagraphText(DOMXPath $xpath, DOMNode $node): string
