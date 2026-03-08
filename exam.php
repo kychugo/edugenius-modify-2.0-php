@@ -306,9 +306,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
             <div class="form-group" style="--i: 1;">
                 <label for="subject"><i class="fas fa-book"></i>Subject:</label>
                 <select id="subject">
-                    <option value="math">Mathematics</option>
-                    <option value="physics">Physics</option>
-                    <option value="biology">Biology</option>
+                    <option value="Math">Mathematics</option>
+                    <option value="Physics">Physics</option>
+                    <option value="Biology">Biology</option>
                 </select>
             </div>
 
@@ -496,7 +496,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
             topicsSelect.innerHTML = '';
             const subject = subjectSelect.value;
             
-            if (subject === 'math') {
+            if (subject === 'Math') {
                 subtopicsContainer.style.display = 'none';
                 mathTopics.forEach(topic => {
                     const option = document.createElement('option');
@@ -504,7 +504,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
                     option.textContent = topic;
                     topicsSelect.appendChild(option);
                 });
-            } else if (subject === 'physics') {
+            } else if (subject === 'Physics') {
                 subtopicsContainer.style.display = 'block';
                 Object.keys(physicsTopics).forEach(topic => {
                     const option = document.createElement('option');
@@ -512,7 +512,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
                     option.textContent = topic;
                     topicsSelect.appendChild(option);
                 });
-            } else if (subject === 'biology') {
+            } else if (subject === 'Biology') {
                 subtopicsContainer.style.display = 'block';
                 Object.keys(biologyTopics).forEach(topic => {
                     const option = document.createElement('option');
@@ -528,7 +528,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
             subtopicsList.innerHTML = '';
             const selectedOptions = Array.from(topicsSelect.selectedOptions);
             const subject = subjectSelect.value;
-            const topics = subject === 'physics' ? physicsTopics : biologyTopics;
+            const topics = subject === 'Physics' ? physicsTopics : biologyTopics;
             
             selectedOptions.forEach(option => {
                 const topic = option.value;
@@ -558,7 +558,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
         subjectSelect.addEventListener('change', populateTopics);
         topicsSelect.addEventListener('change', function() {
             const subject = subjectSelect.value;
-            if (subject === 'physics' || subject === 'biology') {
+            if (subject === 'Physics' || subject === 'Biology') {
                 populateSubtopics();
             } else {
                 subtopicsContainer.style.display = 'none';
@@ -624,7 +624,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
             const topics = [...selectedTopics, ...customTopics];
             const difficulty = document.getElementById('difficulty').value;
             
-            const subtopics = (subject === 'physics' || subject === 'biology') ? getSelectedSubtopics() : [];
+            const subtopics = (subject === 'Physics' || subject === 'Biology') ? getSelectedSubtopics() : [];
 
             if (topics.length === 0) {
                 outputDiv.innerHTML = '<div class="error"><i class="fas fa-exclamation-circle"></i> Please select or enter at least one topic.</div>';
