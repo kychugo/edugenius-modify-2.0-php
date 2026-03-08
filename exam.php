@@ -675,7 +675,7 @@ Requirements:
                 const token = window._fbUser ? await window._fbUser.getIdToken() : null;
                 const response = await fetch('./api/ai_proxy.php', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
                     body: JSON.stringify({ subject: subject, mode: 'exam', messages: [{role:'user',content:prompt}], stream: false, temperature: 0.7, max_tokens: 3000 })
                 });
                 if (!response.ok) throw new Error('Request failed: ' + response.status);
@@ -851,7 +851,7 @@ Requirements:
             try {
                 const token = await user.getIdToken();
                 const res = await fetch('./api/history.php?id=' + encodeURIComponent(sessionId), {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
                 });
                 if (!res.ok) return;
                 const data = await res.json();
@@ -900,7 +900,7 @@ Requirements:
                 const token = await user.getIdToken();
                 await fetch('./api/history.php', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
                     body: JSON.stringify({
                         tool: 'Exam Paper Generator',
                         subject: subject,
@@ -938,7 +938,7 @@ Requirements:
                 if (!user) { listEl.innerHTML = '<p style="text-align:center;color:var(--text-secondary);font-size:.85rem;padding:2rem">Please sign in to view history.</p>'; return; }
                 const token = await user.getIdToken();
                 const res = await fetch('./api/history.php?limit=15&tool=' + encodeURIComponent('Exam Paper Generator'), {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
                 });
                 if (!res.ok) throw new Error('Failed');
                 const data = await res.json();
@@ -970,7 +970,7 @@ Requirements:
                 if (!user) return;
                 const token = await user.getIdToken();
                 const res = await fetch('./api/history.php?limit=15&tool=' + encodeURIComponent('Exam Paper Generator') + '&after=' + encodeURIComponent(_exh.lastDoc), {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
                 });
                 if (!res.ok) throw new Error('Failed');
                 const data = await res.json();
@@ -994,7 +994,7 @@ Requirements:
                 const token = await user.getIdToken();
                 await fetch('./api/history.php?id=' + encodeURIComponent(id), {
                     method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
                 });
                 _exh.all = _exh.all.filter(s => s.id !== id);
                 _exhRender(_exh.all);

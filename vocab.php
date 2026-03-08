@@ -1076,7 +1076,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
                 try {
                     const res = await fetch('./api/ai_proxy.php', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
                         body: JSON.stringify({ subject: 'English', mode: 'vocab', messages, model, stream: false, temperature: 0.9, max_tokens: 4096 })
                     });
                     if (!res.ok) continue;
@@ -1794,7 +1794,7 @@ Mix question types: definitions, fill-in-the-blank usage, synonyms, and contextu
             try {
                 const token = await user.getIdToken();
                 const resp = await fetch('./api/history.php?id=' + encodeURIComponent(sessionId), {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
                 });
                 if (!resp.ok) return;
                 const data = await resp.json();
@@ -1862,7 +1862,7 @@ Mix question types: definitions, fill-in-the-blank usage, synonyms, and contextu
                 const token = await user.getIdToken();
                 await fetch('./api/history.php', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
                     body: JSON.stringify({
                         tool: tool,
                         subject: 'English',
@@ -1900,7 +1900,7 @@ Mix question types: definitions, fill-in-the-blank usage, synonyms, and contextu
                 if (!user) { listEl.innerHTML = '<p style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:2rem">Please sign in to view history.</p>'; return; }
                 const token = await user.getIdToken();
                 const resp = await fetch('./api/history.php?limit=' + VOH_PAGE_SIZE + '&tool=' + encodeURIComponent('Vocabulary Generator'), {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
                 });
                 const json = await resp.json();
                 _voh.all = json.docs || [];
@@ -1932,7 +1932,7 @@ Mix question types: definitions, fill-in-the-blank usage, synonyms, and contextu
                 if (!user) return;
                 const token = await user.getIdToken();
                 const resp = await fetch('./api/history.php?limit=' + VOH_PAGE_SIZE + '&tool=' + encodeURIComponent('Vocabulary Generator') + '&after=' + encodeURIComponent(_voh.lastCursor), {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
                 });
                 const json = await resp.json();
                 const more = json.docs || [];
@@ -1955,7 +1955,7 @@ Mix question types: definitions, fill-in-the-blank usage, synonyms, and contextu
                 const token = await user.getIdToken();
                 await fetch('./api/history.php?id=' + encodeURIComponent(id), {
                     method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
                 });
                 _voh.all = _voh.all.filter(s => s.id !== id);
                 _vohRender(_voh.all);

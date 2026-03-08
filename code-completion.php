@@ -584,7 +584,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token
+                        'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token
                     },
                     body: JSON.stringify({
                         subject: 'ICT', mode: 'code_completion',

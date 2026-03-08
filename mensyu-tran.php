@@ -1281,7 +1281,7 @@ const response = await fetch('./api/ai_proxy.php', {
 method: 'POST',
 headers: {
 'Content-Type': 'application/json',
-'Authorization': 'Bearer ' + token
+'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token
 },
 body: JSON.stringify({
 subject: '中文',
@@ -1626,7 +1626,7 @@ return gk_fileData[filename] || "";
             const token = await user.getIdToken();
             await fetch('./api/history.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
                 body: JSON.stringify({
                     tool: '文言文翻譯',
                     subject: '中文',
