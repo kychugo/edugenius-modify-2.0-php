@@ -1574,6 +1574,112 @@
             input.value = '';
         }
 
+        function escapeHTML(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function sanitizeHttpUrl(value) {
+            try {
+                const parsed = new URL(String(value ?? ''), window.location.href);
+                if (!['http:', 'https:'].includes(parsed.protocol)) return '';
+                return parsed.href;
+            } catch (_) {
+                return '';
+            }
+        }
+
+        function extractHttpUrls(text) {
+            return String(text ?? '').match(/https?:\/\/[^\s<>"']+/gi) || [];
+        }
+
+        function buildSourceArticleContext(article) {
+            if (!article?.content) return '';
+            const parts = [
+                '',
+                '[Source article content retrieved from the provided URL]',
+                `Title: ${article.title || 'Source Article'}`,
+                `Source URL: ${article.source_url || ''}`
+            ];
+            if (article.image_url) {
+                parts.push(`Main image URL: ${article.image_url}`);
+            }
+            parts.push('Full article content:');
+            parts.push(article.content);
+            parts.push('Use this source content for the answer when relevant, and keep the source URL visible if you cite or summarise the article.');
+            return parts.join('\n');
+        }
+
+        async function fetchSourceArticle(text) {
+            const [sourceUrl] = extractHttpUrls(text);
+            if (!sourceUrl) return null;
+            const token = await window.auth.currentUser?.getIdToken();
+            if (!token) return null;
+
+            try {
+                const response = await fetch('./api/article_fetch.php', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                        'X-Firebase-Token': token
+                    },
+                    body: JSON.stringify({ url: sourceUrl })
+                });
+
+                if (!response.ok) return null;
+                const data = await response.json();
+                return data.article || null;
+            } catch (error) {
+                console.warn('Source article fetch failed:', error);
+                return null;
+            }
+        }
+
+        function addSourceArticleMessage(type, article) {
+            if (!article?.content) return;
+            const chatBox = document.getElementById(`${type}ChatBox`);
+            if (!chatBox) return;
+
+            const messageDiv = document.createElement('div');
+            const safeTitle = escapeHTML(article.title || 'Source Article');
+            const safeContent = escapeHTML(article.content).replace(/\n/g, '<br>');
+            const safeSourceUrl = sanitizeHttpUrl(article.source_url || '');
+            const safeImageUrl = sanitizeHttpUrl(article.image_url || '');
+
+            messageDiv.className = 'flex justify-start';
+            messageDiv.innerHTML = `
+                <div class="message-bubble ai-bubble p-4 max-w-xs md:max-w-2xl lg:max-w-4xl" style="border:1px solid rgba(59,130,246,.16)">
+                    <div class="flex items-start gap-3">
+                        <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                             style="background:linear-gradient(135deg,#3b82f6,#2563eb)">
+                            <i class="fas fa-newspaper text-white text-sm"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-bold text-sm mb-2" style="color:var(--text-primary)">Source Article</p>
+                            <h3 class="text-base font-semibold mb-3" style="color:var(--text-primary)">${safeTitle}</h3>
+                            ${safeSourceUrl ? `
+                                <p class="text-xs mb-3">
+                                    <a href="${safeSourceUrl}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;word-break:break-all">
+                                        ${escapeHTML(safeSourceUrl)}
+                                    </a>
+                                </p>` : ''}
+                            ${safeImageUrl ? `
+                                <img src="${safeImageUrl}" alt="${safeTitle}" class="w-full max-h-80 object-cover rounded-xl mb-3" referrerpolicy="no-referrer">` : ''}
+                            <div class="text-sm leading-7" style="color:var(--text-primary);white-space:normal;word-break:break-word">${safeContent}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
         async function pasteImage(type) {
             try {
                 if (!navigator.clipboard?.read) {
@@ -1647,11 +1753,17 @@
 
             try {
                 let base64Image = null;
+                let sourceArticle = null;
                 if (file) {
                     base64Image = await toBase64(file);
+                } else if (question) {
+                    sourceArticle = await fetchSourceArticle(question);
+                    if (sourceArticle) {
+                        addSourceArticleMessage(type, sourceArticle);
+                    }
                 }
 
-                await sendRequest(type, userContent, loadingMessageId, base64Image);
+                await sendRequest(type, userContent, loadingMessageId, base64Image, sourceArticle);
 
             } catch (error) {
                 removeMessage(loadingMessageId);
@@ -1663,18 +1775,21 @@
         }
         
         // Streaming sendRequest function
-        async function sendRequest(type, messageContent, loadingMessageId, base64Image = null) {
+        async function sendRequest(type, messageContent, loadingMessageId, base64Image = null, sourceArticle = null) {
+            const effectiveMessageContent = sourceArticle
+                ? `${messageContent}\n\n${buildSourceArticleContext(sourceArticle)}`
+                : messageContent;
             let userMessagePayload;
             if (base64Image) {
                 userMessagePayload = {
                     role: "user",
                     content: [
                         { type: "image_url", image_url: { url: base64Image, detail: "high" } },
-                        { type: "text", text: messageContent }
+                        { type: "text", text: effectiveMessageContent }
                     ]
                 };
             } else {
-                userMessagePayload = { role: "user", content: messageContent };
+                userMessagePayload = { role: "user", content: effectiveMessageContent };
             }
             histories[type].push(userMessagePayload);
             const validMessages = histories[type].filter(msg => msg.content);
@@ -2004,7 +2119,7 @@
                         <div class="flex items-start gap-3">
                             <div class="flex-1 min-w-0">
                                 <p class="font-bold text-sm mb-1 text-white opacity-80">You</p>
-                                <p class="text-sm text-white">${content.replace(/\n/g, '<br>')}</p>
+                                <p class="text-sm text-white">${escapeHTML(content).replace(/\n/g, '<br>')}</p>
                                 ${imageHTML}
                             </div>
                             <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
@@ -2284,7 +2399,18 @@
             return result;
 
             function applyInline(s) {
-                return s
+                const escaped = escapeHTML(s);
+                return escaped
+                    .replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g, (_, alt, url) => {
+                        const safeUrl = sanitizeHttpUrl(url);
+                        if (!safeUrl) return alt;
+                        return `<img src="${safeUrl}" alt="${alt}" class="w-full max-h-80 object-cover rounded-xl my-3" referrerpolicy="no-referrer">`;
+                    })
+                    .replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g, (_, label, url) => {
+                        const safeUrl = sanitizeHttpUrl(url);
+                        if (!safeUrl) return label;
+                        return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="underline" style="color:#2563eb">${label}</a>`;
+                    })
                     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                     .replace(/\*(.*?)\*/g, '<em>$1</em>')
                     .replace(/`([^`]+)`/g, '<code class="bg-gray-200 dark:bg-gray-600 px-1 py-0.5 rounded text-sm">$1</code>');
