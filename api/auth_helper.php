@@ -110,7 +110,20 @@ function verifyFirebaseToken(string $idToken) {
  * @return string Verified user UID.
  */
 function requireAuth(): string {
-    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    // Try all sources where the Authorization header may appear, depending on
+    // the PHP SAPI and server configuration (mod_php, CGI, FastCGI, etc.).
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION']
+               ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
+               ?? $_SERVER['AUTHORIZATION']
+               ?? '';
+
+    // Last-resort fallback: apache_request_headers() works when mod_php is
+    // loaded even if the header was not copied into $_SERVER.
+    if ($authHeader === '' && function_exists('apache_request_headers')) {
+        $headers = apache_request_headers();
+        $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+    }
+
     if (!str_starts_with($authHeader, 'Bearer ')) {
         http_response_code(401);
         header('Content-Type: application/json');
