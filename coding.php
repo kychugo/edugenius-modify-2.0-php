@@ -518,7 +518,7 @@ ${codeContent}
             const token = window._fbUser ? await window._fbUser.getIdToken() : null;
             const response = await fetch('./api/ai_proxy.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
                 body: JSON.stringify({
                     subject: 'ICT',
                     mode: 'code_review',
@@ -838,7 +838,7 @@ ${code.substring(0, 2000)}
             try {
                 const token = await user.getIdToken();
                 const res = await fetch('./api/history.php?id=' + encodeURIComponent(sessionId), {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
                 });
                 if (!res.ok) return;
                 const data = await res.json();
@@ -883,7 +883,7 @@ ${code.substring(0, 2000)}
                 const token = await user.getIdToken();
                 await fetch('./api/history.php', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
                     body: JSON.stringify({
                         tool: 'Code Review',
                         subject: 'ICT',
@@ -921,7 +921,7 @@ ${code.substring(0, 2000)}
                 if (!user) { listEl.innerHTML = '<p style="text-align:center;color:var(--text-secondary);font-size:.85rem;padding:2rem">Please sign in to view history.</p>'; return; }
                 const token = await user.getIdToken();
                 const res = await fetch('./api/history.php?limit=15&tool=' + encodeURIComponent('Code Review'), {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
                 });
                 if (!res.ok) throw new Error('Failed');
                 const data = await res.json();
@@ -953,7 +953,7 @@ ${code.substring(0, 2000)}
                 if (!user) return;
                 const token = await user.getIdToken();
                 const res = await fetch('./api/history.php?limit=15&tool=' + encodeURIComponent('Code Review') + '&after=' + encodeURIComponent(_crh.lastDoc), {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
                 });
                 if (!res.ok) throw new Error('Failed');
                 const data = await res.json();
@@ -977,7 +977,7 @@ ${code.substring(0, 2000)}
                 const token = await user.getIdToken();
                 await fetch('./api/history.php?id=' + encodeURIComponent(id), {
                     method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
                 });
                 _crh.all = _crh.all.filter(s => s.id !== id);
                 _crhRender(_crh.all);

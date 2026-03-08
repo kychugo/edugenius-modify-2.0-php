@@ -117,11 +117,33 @@ function requireAuth(): string {
                ?? $_SERVER['AUTHORIZATION']
                ?? '';
 
+    // Fallback: getallheaders() works with any SAPI (including nginx+PHP-FPM)
+    // and provides access to all HTTP request headers.
+    if ($authHeader === '' && function_exists('getallheaders')) {
+        $headers = getallheaders();
+        // Normalize to case-insensitive search
+        foreach ($headers as $name => $value) {
+            if (strtolower($name) === 'authorization') {
+                $authHeader = $value;
+                break;
+            }
+        }
+    }
+
     // Last-resort fallback: apache_request_headers() works when mod_php is
     // loaded even if the header was not copied into $_SERVER.
     if ($authHeader === '' && function_exists('apache_request_headers')) {
         $headers = apache_request_headers();
         $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+    }
+
+    // Custom header fallback: some proxies/CDNs strip the Authorization header;
+    // clients can send X-Firebase-Token as an alternative.
+    if ($authHeader === '') {
+        $customToken = $_SERVER['HTTP_X_FIREBASE_TOKEN'] ?? '';
+        if ($customToken !== '') {
+            $authHeader = 'Bearer ' . $customToken;
+        }
     }
 
     if (!str_starts_with($authHeader, 'Bearer ')) {

@@ -813,7 +813,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
                 try {
                     const res = await fetch('./api/ai_proxy.php', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
                         body: JSON.stringify({ subject: 'English', mode: 'writing', messages, model, stream: false, temperature: 0.9, max_tokens: 4096 })
                     });
                     if (!res.ok) continue;
@@ -1214,7 +1214,7 @@ Return ONLY valid JSON (absolutely no other text):
                 const token = await user.getIdToken();
                 const resp = await fetch('./api/history.php', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
                     body: JSON.stringify({
                         tool: 'English Writing',
                         subject: 'English',
@@ -1240,7 +1240,7 @@ Return ONLY valid JSON (absolutely no other text):
                     const token = await user.getIdToken();
                     await fetch('./api/history.php?id=' + encodeURIComponent(_writingSessionId), {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
                         body: JSON.stringify({
                             messages: [{ role: 'assistant', content: `[Sample Essay]\n${essayContent}`, timestamp: new Date().toISOString() }]
                         })
@@ -1272,7 +1272,7 @@ Return ONLY valid JSON (absolutely no other text):
                 if (!user) { listEl.innerHTML = '<p style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:2rem">Please sign in to view history.</p>'; return; }
                 const token = await user.getIdToken();
                 const resp = await fetch('./api/history.php?limit=' + EWH_PAGE_SIZE + '&tool=' + encodeURIComponent('English Writing'), {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
                 });
                 const json = await resp.json();
                 _ewh.all = json.docs || [];
@@ -1304,7 +1304,7 @@ Return ONLY valid JSON (absolutely no other text):
                 if (!user) return;
                 const token = await user.getIdToken();
                 const resp = await fetch('./api/history.php?limit=' + EWH_PAGE_SIZE + '&tool=' + encodeURIComponent('English Writing') + '&after=' + encodeURIComponent(_ewh.lastCursor), {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
                 });
                 const json = await resp.json();
                 const more = json.docs || [];
@@ -1327,7 +1327,7 @@ Return ONLY valid JSON (absolutely no other text):
                 const token = await user.getIdToken();
                 await fetch('./api/history.php?id=' + encodeURIComponent(id), {
                     method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
                 });
                 _ewh.all = _ewh.all.filter(s => s.id !== id);
                 _ewhRender(_ewh.all);

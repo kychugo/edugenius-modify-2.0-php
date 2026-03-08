@@ -1064,7 +1064,7 @@ async function makeApiRequest(messages) {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token
+                    'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token
                 },
                 body: JSON.stringify({
                     subject: '中文',
@@ -2144,7 +2144,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const token = await user.getIdToken();
                 await fetch('./api/history.php', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
                     body: JSON.stringify({
                         tool: tool,
                         subject: subject,

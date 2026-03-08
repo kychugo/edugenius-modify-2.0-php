@@ -1146,7 +1146,7 @@
                 if (!_historyIds[type]) {
                     const res = await fetch('./api/history.php', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
                         body: JSON.stringify({
                             tool: toolLabels[type] || type,
                             subject: subject,
@@ -1162,7 +1162,7 @@
                 } else {
                     await fetch('./api/history.php?id=' + encodeURIComponent(_historyIds[type]), {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
                         body: JSON.stringify({ messages: [userEntry, aiEntry] })
                     });
                 }
@@ -1177,7 +1177,7 @@
             try {
                 const res = await fetch('./api/history.php?id=' + encodeURIComponent(sessionId), {
                     method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
                 });
                 return res.ok;
             } catch (e) {
@@ -1193,7 +1193,7 @@
                 let url = './api/history.php?limit=20';
                 if (afterDoc) url += '&after=' + encodeURIComponent(afterDoc);
                 const res = await fetch(url, {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
                 });
                 if (!res.ok) return { docs: [], lastDoc: null };
                 const data = await res.json();
@@ -1708,7 +1708,8 @@
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'X-Firebase-Token': token
                         },
                         body: JSON.stringify({
                             subject: currentSubject,
