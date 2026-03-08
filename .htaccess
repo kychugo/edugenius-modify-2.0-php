@@ -5,6 +5,9 @@ RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^(.+)\.html$ $1.php [L,R=301]
 
+# ── Pass Authorization header to PHP (required for CGI/FastCGI setups) ───
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
 # ── Block direct browser access to sensitive PHP files ────────────────────
 # FilesMatch compares against filename only (not path), so these match
 # regardless of directory depth.

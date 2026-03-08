@@ -13,59 +13,20 @@ An AI-powered learning platform for Hong Kong DSE students.
 
 ## History Feature (New)
 
-Every AI interaction is automatically saved to **Firebase Firestore** under the authenticated user's account. Users can view, browse, and delete their history on the **History** page (`history.html`).
+Every AI interaction is automatically saved to **MySQL** (via the PHP backend) under the authenticated user's account. Users can view, browse, and delete their history on the **History** page (`history.php`).
 
-### Firestore Data Structure
+### Database Structure
 
-```
-users/{userId}/history/{sessionId}
-  - tool        : string   — e.g. "Ask AI", "Code Review"
-  - subject     : string   — e.g. "Math", "ICT", "English"
-  - page        : string   — source page identifier
-  - summary     : string   — first user message (≤ 100 chars)
-  - messages    : array    — [{role, content, timestamp}]
-  - createdAt   : Timestamp
-  - updatedAt   : Timestamp
-```
+History sessions are stored in MySQL. Each record contains:
+
+- `tool` — e.g. "Ask AI", "Code Review"
+- `subject` — e.g. "Math", "ICT", "English"
+- `page` — source page identifier
+- `summary` — first user message (≤ 100 chars)
+- `messages` — JSON array of `{role, content, timestamp}`
+- `created_at`, `updated_at` — timestamps
 
 **Minimum-usage design:**
-- Chat tools (Ask AI, Dictionary AI, Guide Learning): 1 write on the first Q&A, then 1 write per subsequent Q&A pair using `arrayUnion`.
+- Chat tools (Ask AI, Dictionary AI, Guide Learning): 1 write on the first Q&A, then 1 write per subsequent Q&A pair.
 - Single-generation tools (Code Review, Exam, Writing, Vocabulary, Translation): 1 write per generation.
-- History reads only happen when the user explicitly opens `history.html` (20 sessions per page, paginated).
-
-### Firebase Firestore Security Rules
-
-Apply the rules in `firestore.rules` to your Firebase project:
-
-1. Open the [Firebase Console](https://console.firebase.google.com/).
-2. Select your project (`login-system-9c566`).
-3. Go to **Firestore Database → Rules**.
-4. Replace the existing rules with the contents of `firestore.rules`.
-5. Click **Publish**.
-
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId}/history/{sessionId} {
-      allow read:   if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null
-                    && request.auth.uid == userId
-                    && request.resource.data.tool     is string
-                    && request.resource.data.subject  is string
-                    && request.resource.data.summary  is string
-                    && request.resource.data.messages is list
-                    && request.resource.data.messages.size() >= 1
-                    && request.resource.data.messages.size() <= 200;
-      allow update: if request.auth != null
-                    && request.auth.uid == userId
-                    && request.resource.data.messages is list
-                    && request.resource.data.messages.size() <= 200;
-      allow delete: if request.auth != null && request.auth.uid == userId;
-    }
-    match /{document=**} {
-      allow read, write: if false;
-    }
-  }
-}
-```
+- History reads only happen when the user explicitly opens `history.php` (20 sessions per page, paginated).
