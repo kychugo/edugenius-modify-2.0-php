@@ -1927,12 +1927,10 @@ Mix question types: definitions, fill-in-the-blank usage, synonyms, and contextu
             const btn = document.getElementById('vohLoadMoreBtn');
             if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading…'; }
             try {
+                if (!_voh.lastCursor) return;
                 const user = window._fbUser;
                 if (!user) return;
-                if (!_voh.lastCursor) return;
-                const user2 = window._fbUser;
-                if (!user2) return;
-                const token = await user2.getIdToken();
+                const token = await user.getIdToken();
                 const resp = await fetch('./api/history.php?limit=' + VOH_PAGE_SIZE + '&tool=' + encodeURIComponent('Vocabulary Generator') + '&after=' + encodeURIComponent(_voh.lastCursor), {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });

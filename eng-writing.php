@@ -1299,12 +1299,10 @@ Return ONLY valid JSON (absolutely no other text):
             const btn = document.getElementById('ewhLoadMoreBtn');
             if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading…'; }
             try {
+                if (!_ewh.lastCursor) return;
                 const user = window._fbUser;
                 if (!user) return;
-                if (!_ewh.lastCursor) return;
-                const user2 = window._fbUser;
-                if (!user2) return;
-                const token = await user2.getIdToken();
+                const token = await user.getIdToken();
                 const resp = await fetch('./api/history.php?limit=' + EWH_PAGE_SIZE + '&tool=' + encodeURIComponent('English Writing') + '&after=' + encodeURIComponent(_ewh.lastCursor), {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
