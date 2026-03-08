@@ -41,8 +41,11 @@ function getFirebasePublicKeys(): array {
     }
 
     $keys = json_decode($body, true) ?: [];
-    file_put_contents($cacheFile, $body);
+    file_put_contents($cacheFile,   $body);
     file_put_contents($cacheExpiry, time() + $maxAge);
+    // Restrict cache files to the current user only
+    @chmod($cacheFile,   0600);
+    @chmod($cacheExpiry, 0600);
     return $keys;
 }
 

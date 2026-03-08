@@ -24,6 +24,9 @@ define('FIREBASE_MESSAGING_ID',     '547074181663');
 define('FIREBASE_APP_ID',           '1:547074181663:web:6e3afd6c7c1ec6ae43232a');
 define('FIREBASE_MEASUREMENT_ID',   'G-09M3C3D6PT');
 
+// ── AI Proxy ───────────────────────────────────────────────────────────────
+define('MAX_AI_TOKENS', 8192);
+
 /**
  * Returns a <script> block that injects Firebase config as a global JS object.
  * Call echo firebaseConfigScript(); inside a PHP page's <head>.

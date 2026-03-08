@@ -40,7 +40,7 @@ $mode        = (string)($body['mode']        ?? '');
 $model       = (string)($body['model']       ?? 'gemini-search');
 $stream      = (bool)($body['stream']        ?? true);
 $messages    = $body['messages']             ?? [];
-$maxTokens   = min((int)($body['max_tokens'] ?? 4096), 8192);
+$maxTokens   = min((int)($body['max_tokens'] ?? 4096), MAX_AI_TOKENS);
 $temperature = (float)($body['temperature'] ?? 0);
 
 // Sanitize model name (alphanumeric + hyphens only)

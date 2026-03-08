@@ -87,14 +87,11 @@ try {
     // ── POST (create) ─────────────────────────────────────────────────────
     if ($method === 'POST') {
         $body = json_decode(file_get_contents('php://input'), true) ?: [];
-        $id   = sprintf(
-            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0x0fff) | 0x4000,
-            mt_rand(0, 0x3fff) | 0x8000,
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
-        );
+        // Cryptographically-random UUID v4
+        $bytes = random_bytes(16);
+        $bytes[6] = chr((ord($bytes[6]) & 0x0f) | 0x40); // version 4
+        $bytes[8] = chr((ord($bytes[8]) & 0x3f) | 0x80); // variant bits
+        $id = vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($bytes), 4));
 
         $tool     = substr((string)($body['tool']    ?? ''), 0, 100);
         $subject  = substr((string)($body['subject'] ?? ''), 0, 100);
