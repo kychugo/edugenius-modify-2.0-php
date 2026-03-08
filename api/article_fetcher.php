@@ -22,17 +22,11 @@ function isPublicHttpUrl(string $url): bool
 
     $scheme = strtolower((string)($parts['scheme'] ?? ''));
     $host = (string)($parts['host'] ?? '');
-    $port = isset($parts['port']) ? (int)$parts['port'] : null;
-
     if (!in_array($scheme, ['http', 'https'], true) || $host === '') {
         return false;
     }
 
     if (isset($parts['user']) || isset($parts['pass'])) {
-        return false;
-    }
-
-    if ($port !== null && !in_array($port, [80, 443], true)) {
         return false;
     }
 
@@ -148,7 +142,7 @@ function fetchArticleDetails(string $url): ?array
         CURLOPT_RETURNTRANSFER => false,
         CURLOPT_CONNECTTIMEOUT => 10,
         CURLOPT_TIMEOUT        => 20,
-        CURLOPT_USERAGENT      => 'EduGeniusBot/1.0 (+https://github.com/kychugo/edugenius-modify-2.0-php)',
+        CURLOPT_USERAGENT      => 'EduGeniusBot/1.0',
         CURLOPT_HTTPHEADER     => [
             'Accept: text/html,application/xhtml+xml',
             'Accept-Language: en-US,en;q=0.9,zh-HK;q=0.8,zh;q=0.7',
@@ -314,8 +308,12 @@ function firstCandidateImageUrl(DOMXPath $xpath, string $baseUrl): ?string
 
 function metaContent(DOMXPath $xpath, string $attribute, string $value): ?string
 {
-    $query = sprintf('//meta[@%s="%s"]/@content', $attribute, $value);
-    $content = trim((string)$xpath->evaluate("string({$query})"));
+    if (!in_array($attribute, ['property', 'name'], true)) {
+        return null;
+    }
+
+    $query = sprintf('string(//meta[@%s=%s][1]/@content)', $attribute, xpathLiteral($value));
+    $content = trim((string)$xpath->evaluate($query));
     return $content !== '' ? $content : null;
 }
 
@@ -337,4 +335,18 @@ function firstNonEmpty(array $values): ?string
     }
 
     return null;
+}
+
+function xpathLiteral(string $value): string
+{
+    if (strpos($value, "'") === false) {
+        return "'" . $value . "'";
+    }
+
+    if (strpos($value, '"') === false) {
+        return '"' . $value . '"';
+    }
+
+    $parts = explode("'", $value);
+    return "concat('" . implode("', \"'\", '", $parts) . "')";
 }

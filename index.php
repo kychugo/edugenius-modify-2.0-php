@@ -1587,6 +1587,16 @@
             try {
                 const parsed = new URL(String(value ?? ''), window.location.href);
                 if (!['http:', 'https:'].includes(parsed.protocol)) return '';
+                if (parsed.username || parsed.password) return '';
+                const host = parsed.hostname.toLowerCase();
+                const isPrivateIpv4 = /^(127\.|10\.|192\.168\.|169\.254\.|0\.0\.0\.0$)/.test(host)
+                    || /^172\.(1[6-9]|2\d|3[0-1])\./.test(host);
+                const isPrivateIpv6 = host === '::1'
+                    || host === '::'
+                    || host.startsWith('fc')
+                    || host.startsWith('fd')
+                    || host.startsWith('fe80:');
+                if (host === 'localhost' || host.endsWith('.localhost') || isPrivateIpv4 || isPrivateIpv6) return '';
                 return parsed.href;
             } catch (_) {
                 return '';
@@ -1594,7 +1604,7 @@
         }
 
         function extractHttpUrls(text) {
-            return String(text ?? '').match(/https?:\/\/[^\s<>"']+/gi) || [];
+            return String(text ?? '').match(/https?:\/\/[^\s<>"'{}|\\^`]+/gi) || [];
         }
 
         function buildSourceArticleContext(article) {
@@ -1776,6 +1786,8 @@
         
         // Streaming sendRequest function
         async function sendRequest(type, messageContent, loadingMessageId, base64Image = null, sourceArticle = null) {
+            // Keep the visible user bubble unchanged while still giving the model the fetched source article
+            // as extra context, so the answer can use the full article body without duplicating it in the chat.
             const effectiveMessageContent = sourceArticle
                 ? `${messageContent}\n\n${buildSourceArticleContext(sourceArticle)}`
                 : messageContent;
@@ -2401,12 +2413,12 @@
             function applyInline(s) {
                 const escaped = escapeHTML(s);
                 return escaped
-                    .replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g, (_, alt, url) => {
+                    .replace(/!\[([^\]]*)\]\(((?:https?:\/\/[^\s()]|\([^\s()]*\))+)(?:\s+"[^"]*")?\)/g, (_, alt, url) => {
                         const safeUrl = sanitizeHttpUrl(url);
                         if (!safeUrl) return alt;
                         return `<img src="${safeUrl}" alt="${alt}" class="w-full max-h-80 object-cover rounded-xl my-3" referrerpolicy="no-referrer">`;
                     })
-                    .replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g, (_, label, url) => {
+                    .replace(/\[([^\]]+)\]\(((?:https?:\/\/[^\s()]|\([^\s()]*\))+)(?:\s+"[^"]*")?\)/g, (_, label, url) => {
                         const safeUrl = sanitizeHttpUrl(url);
                         if (!safeUrl) return label;
                         return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="underline" style="color:#2563eb">${label}</a>`;
