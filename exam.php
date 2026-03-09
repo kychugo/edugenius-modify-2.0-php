@@ -898,7 +898,7 @@ Requirements:
             if (!user) return;
             try {
                 const token = await user.getIdToken();
-                await fetch('./api/history.php', {
+                const res = await fetch('./api/history.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
                     body: JSON.stringify({
@@ -912,10 +912,37 @@ Requirements:
                         ]
                     })
                 });
+                if (res.ok) {
+                    const data = await res.json();
+                    _generateAIExamTitle(token, data.id, subject, topics, content);
+                }
             } catch (e) {
                 console.warn('History save failed:', e);
             }
         };
+
+        async function _generateAIExamTitle(token, sessionId, subject, topics, content) {
+            try {
+                const userMsg = `Subject: ${subject}, Topics: ${topics.join(', ')}`;
+                const titlePrompt = `Generate a concise chat title (5 words or fewer) that summarises this conversation. Return only the title text, no punctuation or quotes.\n\nUser: ${userMsg.substring(0, 200)}\nAI: ${content.substring(0, 200)}`;
+                const res = await fetch('./api/ai_proxy.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
+                    body: JSON.stringify({ subject: subject, mode: 'ask', model: 'gemini-fast', stream: false, messages: [{ role: 'user', content: titlePrompt }], max_tokens: 20, temperature: 0.7 })
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                const title = (data.choices?.[0]?.message?.content || '').trim().replace(/^["']|["']$/g, '').substring(0, 100);
+                if (!title) return;
+                await fetch('./api/history.php?id=' + encodeURIComponent(sessionId), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
+                    body: JSON.stringify({ summary: title })
+                });
+            } catch (e) {
+                console.warn('AI title generation failed:', e);
+            }
+        }
 
         // ── Exam History Panel ──────────────────────────────────────
         let _exh = { all:[], lastDoc:null, loading:false };
