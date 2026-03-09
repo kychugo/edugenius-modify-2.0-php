@@ -794,8 +794,8 @@ ${code.substring(0, 2000)}
     <div id="crHistoryPanel" role="dialog" aria-modal="true" aria-label="Code Review history">
         <div id="crHistoryPanelHeader">
             <div class="flex items-center gap-2">
-                <div style="width:28px;height:28px;border-radius:8px;overflow:hidden;background:linear-gradient(135deg,#7c3aed,#06b6d4);flex-shrink:0">
-                    <img src="https://i.ibb.co/gMQh9L2S/Edu-Genius-AI.png" alt="EduGenius" style="width:100%;height:100%;object-fit:cover">
+                <div style="width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#7c3aed,#06b6d4);flex-shrink:0">
+                    <i class="fas fa-code" style="color:#fff;font-size:.85rem"></i>
                 </div>
                 <span style="font-weight:700;font-size:.95rem;color:var(--text-primary)">Code Review History</span>
             </div>
@@ -1040,8 +1040,8 @@ ${code.substring(0, 2000)}
                      aria-label="Open Code Review session"
                      style="cursor:pointer"
                      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();closeCRHistory();window.location.href='./coding.php?session=${s.id}'}">
-                    <div style="width:36px;height:36px;border-radius:10px;overflow:hidden;background:linear-gradient(135deg,#7c3aed,#06b6d4);flex-shrink:0">
-                        <img src="https://i.ibb.co/gMQh9L2S/Edu-Genius-AI.png" alt="EduGenius" style="width:100%;height:100%;object-fit:cover">
+                    <div style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#7c3aed,#06b6d4);flex-shrink:0">
+                        <i class="fas fa-code" style="color:#fff;font-size:1rem"></i>
                     </div>
                     <div style="flex:1;min-width:0">
                         <p style="font-weight:700;font-size:.8rem;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_crhEsc(question.substring(0,60))}</p>

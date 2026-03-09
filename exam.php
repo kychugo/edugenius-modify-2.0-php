@@ -1060,8 +1060,8 @@ Requirements:
                      aria-label="Open Exam Paper session"
                      style="cursor:pointer"
                      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();closeExamHistory();window.location.href='./exam.php?session=${s.id}'}">
-                    <div style="width:36px;height:36px;border-radius:10px;overflow:hidden;background:linear-gradient(135deg,#7c3aed,#06b6d4);flex-shrink:0">
-                        <img src="https://i.ibb.co/gMQh9L2S/Edu-Genius-AI.png" alt="EduGenius" style="width:100%;height:100%;object-fit:cover">
+                    <div style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f59e0b,#d97706);flex-shrink:0">
+                        <i class="fas fa-file-alt" style="color:#fff;font-size:1rem"></i>
                     </div>
                     <div style="flex:1;min-width:0">
                         <p style="font-weight:700;font-size:.8rem;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_exhEsc((s.summary||subject).substring(0,60))}</p>
@@ -1100,8 +1100,8 @@ Requirements:
     <div id="examHistoryPanel" role="dialog" aria-modal="true" aria-label="Exam history">
         <div id="examHistoryPanelHeader">
             <div style="display:flex;align-items:center;gap:.5rem">
-                <div style="width:28px;height:28px;border-radius:8px;overflow:hidden;background:linear-gradient(135deg,#7c3aed,#06b6d4);flex-shrink:0">
-                    <img src="https://i.ibb.co/gMQh9L2S/Edu-Genius-AI.png" alt="EduGenius" style="width:100%;height:100%;object-fit:cover">
+                <div style="width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f59e0b,#d97706);flex-shrink:0">
+                    <i class="fas fa-file-alt" style="color:#fff;font-size:.85rem"></i>
                 </div>
                 <span style="font-weight:700;font-size:.95rem;color:var(--text-primary)">Exam History</span>
             </div>
