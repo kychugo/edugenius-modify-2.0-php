@@ -305,6 +305,50 @@
         @media (max-width: 768px) {
             .exercise-grid { grid-template-columns: 1fr !important; }
         }
+
+        /* ── Code Completion History Panel ──────────────────────────── */
+        #ccHistoryBackdrop {
+            display:none; position:fixed; inset:0; z-index:900;
+            background:rgba(0,0,0,.45); backdrop-filter:blur(4px);
+            opacity:0; transition:opacity .3s ease;
+        }
+        #ccHistoryBackdrop.open { opacity:1; }
+        #ccHistoryPanel {
+            position:fixed; top:0; right:0; bottom:0; z-index:901;
+            width:min(480px,100vw);
+            background:var(--glass-bg,rgba(255,255,255,.95));
+            border-left:1px solid var(--glass-border,rgba(255,255,255,.65));
+            box-shadow:-8px 0 32px rgba(0,0,0,.18);
+            display:flex; flex-direction:column;
+            transform:translateX(100%);
+            transition:transform .35s cubic-bezier(.16,1,.3,1);
+            overflow:hidden;
+        }
+        #ccHistoryPanel.open { transform:translateX(0); }
+        #ccHistoryPanelHeader {
+            display:flex; align-items:center; justify-content:space-between;
+            padding:1rem 1.25rem;
+            background:var(--glass-bg,rgba(255,255,255,.95));
+            border-bottom:1px solid var(--glass-border,rgba(255,255,255,.65));
+            flex-shrink:0;
+        }
+        #ccHistoryPanelBody { flex:1; overflow-y:auto; padding:1rem; }
+        #ccHistoryPanelBody::-webkit-scrollbar { width:4px; }
+        #ccHistoryPanelBody::-webkit-scrollbar-thumb { background:var(--primary); border-radius:99px; }
+        .cch-card {
+            background:var(--glass-bg,rgba(255,255,255,.82));
+            border:1px solid var(--glass-border,rgba(255,255,255,.65));
+            border-radius:12px; margin-bottom:.75rem; overflow:hidden;
+            animation:fadeInUp .3s ease both;
+        }
+        .cch-card-header {
+            display:flex; align-items:center; gap:.75rem;
+            padding:.85rem 1rem; cursor:pointer; transition:background .2s;
+        }
+        .cch-card-header:hover { background:rgba(124,58,237,.06); }
+        .dark #ccHistoryPanel { background:rgba(15,15,40,.95); border-left-color:rgba(255,255,255,.08); }
+        .dark #ccHistoryPanelHeader { background:rgba(15,15,40,.85); border-bottom-color:rgba(255,255,255,.08); }
+        .dark .cch-card { background:rgba(30,20,60,.8); border-color:rgba(255,255,255,.08); }
     </style>
 </head>
 <?= firebaseConfigScript() ?>
@@ -330,6 +374,10 @@
                 <i class="fas fa-arrow-left"></i> Back
             </a>
             <div class="flex items-center gap-2">
+                <button onclick="openCCHistory()" title="View History" aria-label="View history"
+                        style="width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(124,58,237,.1);color:var(--primary);font-size:.95rem;transition:all .2s">
+                    <i class="fas fa-history"></i>
+                </button>
                 <button id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode"
                         style="width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(124,58,237,.1);color:var(--primary);font-size:1rem;transition:all .2s">
                     <span class="theme-moon">🌙</span><span class="theme-sun">☀️</span>
@@ -966,6 +1014,12 @@ Return ONLY valid JSON (no markdown fences):
                 }
             });
 
+            // Save to history (non-blocking)
+            if (window.saveCCHistoryRecord) {
+                const topic = document.getElementById('topic-input').value.trim() || 'Python';
+                window.saveCCHistoryRecord(topic, currentDifficulty, ex, parsed, studentAnswers);
+            }
+
         } catch (err) {
             document.getElementById('score-section').innerHTML = `
                 <div class="p-4 rounded-xl text-sm font-semibold" style="background:rgba(239,68,68,.08);color:#dc2626;border:1px solid rgba(239,68,68,.25)">
@@ -1162,14 +1216,292 @@ Return ONLY valid JSON (no markdown fences):
         const app  = initializeApp(window.__FIREBASE_CONFIG__);
         const auth    = getAuth(app);
         const overlay = document.getElementById('auth-guard-overlay');
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 if (overlay) overlay.style.display = 'none';
                 window._fbUser = user;
+                // Restore from history if session ID is in URL
+                const sessionId = new URLSearchParams(window.location.search).get('session');
+                if (sessionId) await _loadCCSession(user, sessionId);
             } else {
                 window.location.replace('./index.php');
             }
         });
+
+        async function _loadCCSession(user, sessionId) {
+            try {
+                const token = await user.getIdToken();
+                const res = await fetch('./api/history.php?id=' + encodeURIComponent(sessionId), {
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                const msgs = data.messages || [];
+                const userMsg = msgs.find(m => m.role === 'user');
+                const aiMsg   = msgs.find(m => m.role === 'assistant');
+                if (!aiMsg) return;
+
+                // Parse stored data from user message
+                const uc = userMsg ? (userMsg.content || '') : '';
+                const topicMatch = uc.match(/Topic:\s*(.+)/);
+                const diffMatch  = uc.match(/Difficulty:\s*(.+)/i);
+                const topic = topicMatch ? topicMatch[1].trim() : '';
+                const diff  = diffMatch  ? diffMatch[1].trim().toLowerCase()  : 'easy';
+
+                // Show history restoration banner in the results section
+                const historyBanner = `<div style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.25);border-radius:12px;padding:.6rem 1rem;margin-bottom:1.25rem;font-size:.8rem;color:#5b21b6;display:flex;align-items:center;gap:.5rem">
+                    <i class="fas fa-history"></i> <span>Restored from history &mdash; ${(data.summary || topic || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
+                </div>`;
+
+                // Try to parse stored marking result from AI message
+                let parsed = null;
+                try {
+                    const m = aiMsg.content.match(/\{[\s\S]*\}/);
+                    if (m) parsed = JSON.parse(m[0]);
+                } catch (_) {}
+
+                if (topic && document.getElementById('topic-input')) {
+                    document.getElementById('topic-input').value = topic;
+                }
+
+                // Show results panel with restored data
+                const scoreEl = document.getElementById('score-section');
+                const resultsEl = document.getElementById('results-panel');
+                if (resultsEl) resultsEl.style.display = '';
+                if (scoreEl) {
+                    scoreEl.innerHTML = historyBanner + (parsed
+                        ? `<div style="text-align:center;padding:1.5rem"><p class="font-bold" style="color:var(--primary)">${data.summary || topic}</p><p style="font-size:.85rem;color:var(--text-secondary);margin-top:.4rem">Score: ${parsed.overallScore ?? '?'}/${parsed.totalBlanks ?? '?'} · ${diff} difficulty</p></div>`
+                        : `<pre style="white-space:pre-wrap;font-size:.82rem">${aiMsg.content.substring(0,2000)}</pre>`);
+                }
+                if (resultsEl) resultsEl.scrollIntoView({ behavior:'smooth', block:'start' });
+            } catch(e) {
+                console.warn('Failed to load code completion history session:', e);
+            }
+        }
+
+        window.saveCCHistoryRecord = async function(topic, difficulty, ex, marking, studentAnswers) {
+            try {
+                const user = window._fbUser;
+                if (!user) return;
+                const token = await user.getIdToken();
+                const score = marking.overallScore ?? 0;
+                const total = marking.totalBlanks ?? ex.blanks.length;
+                const userContent = `Topic: ${topic}\nDifficulty: ${difficulty}\nTitle: ${ex.title || ''}\n\nExercise:\n${ex.codeWithBlanks || ''}`;
+                const aiContent   = JSON.stringify(marking);
+                const res = await fetch('./api/history.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
+                    body: JSON.stringify({
+                        tool: 'Code Completion',
+                        subject: 'ICT',
+                        summary: `${topic} (${difficulty}) — ${score}/${total}`,
+                        messages: [
+                            { role: 'user',      content: userContent },
+                            { role: 'assistant', content: aiContent  }
+                        ]
+                    })
+                });
+                if (!res.ok) return;
+                const saved = await res.json();
+                // Generate AI title asynchronously
+                if (saved && saved.id) _generateCCTitle(saved.id, topic, difficulty, score, total);
+            } catch(e) {
+                console.warn('History save failed:', e);
+            }
+        };
+
+        async function _generateCCTitle(id, topic, difficulty, score, total) {
+            try {
+                const user = window._fbUser;
+                if (!user) return;
+                const token = await user.getIdToken();
+                const titlePrompt = `Summarise this code completion exercise result in ≤10 words: Topic="${topic}", Difficulty="${difficulty}", Score=${score}/${total}. Return only the summary text.`;
+                const resp = await fetch('./api/ai_proxy.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
+                    body: JSON.stringify({ subject: 'ICT', mode: 'code_completion', model: 'gemini-fast', stream: false, temperature: 0.4, max_tokens: 40, messages: [{ role: 'user', content: titlePrompt }] })
+                });
+                if (!resp.ok) return;
+                const data = await resp.json();
+                const title = data?.choices?.[0]?.message?.content?.trim();
+                if (!title) return;
+                await fetch('./api/history.php?id=' + encodeURIComponent(id), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
+                    body: JSON.stringify({ summary: title })
+                });
+            } catch(_) {}
+        }
+
+        // ── Code Completion History Panel ──────────────────────────────
+        let _cch = { all:[], lastDoc:null, loading:false };
+        const CCH_PAGE_SIZE = 15;
+
+        window.openCCHistory = async function() {
+            const backdrop = document.getElementById('ccHistoryBackdrop');
+            const panel    = document.getElementById('ccHistoryPanel');
+            backdrop.style.display = 'block';
+            requestAnimationFrame(() => {
+                backdrop.classList.add('open');
+                panel.classList.add('open');
+            });
+            _cch = { all:[], lastDoc:null, loading:false };
+            const listEl = document.getElementById('cchList');
+            listEl.innerHTML = `<div style="text-align:center;padding:2rem"><i class="fas fa-spinner fa-spin" style="color:var(--primary);font-size:1.5rem"></i></div>`;
+            document.getElementById('cchLoadMoreWrap').style.display = 'none';
+            try {
+                const user = window._fbUser;
+                if (!user) { listEl.innerHTML = '<p style="text-align:center;color:var(--text-secondary);font-size:.85rem;padding:2rem">Please sign in to view history.</p>'; return; }
+                const token = await user.getIdToken();
+                const res = await fetch('./api/history.php?limit=' + CCH_PAGE_SIZE + '&tool=' + encodeURIComponent('Code Completion'), {
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
+                });
+                if (!res.ok) throw new Error('Failed');
+                const data = await res.json();
+                _cch.all = data.docs || [];
+                _cch.lastDoc = _cch.all.length > 0 ? _cch.all[_cch.all.length-1].updated_at : null;
+                _cchRender(_cch.all);
+                document.getElementById('cchLoadMoreWrap').style.display = (_cch.lastDoc && data.count === CCH_PAGE_SIZE) ? 'block' : 'none';
+            } catch(e) {
+                console.error(e);
+                listEl.innerHTML = '<p style="text-align:center;color:#ef4444;font-size:.85rem;padding:2rem">Failed to load history.</p>';
+            }
+        };
+
+        window.closeCCHistory = function() {
+            const backdrop = document.getElementById('ccHistoryBackdrop');
+            const panel    = document.getElementById('ccHistoryPanel');
+            backdrop.classList.remove('open');
+            panel.classList.remove('open');
+            setTimeout(() => { backdrop.style.display = 'none'; }, 380);
+        };
+
+        window.loadMoreCCH = async function() {
+            if (_cch.loading || !_cch.lastDoc) return;
+            _cch.loading = true;
+            const btn = document.getElementById('cchLoadMoreBtn');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Loading…'; }
+            try {
+                const user = window._fbUser;
+                if (!user) return;
+                const token = await user.getIdToken();
+                const res = await fetch('./api/history.php?limit=' + CCH_PAGE_SIZE + '&tool=' + encodeURIComponent('Code Completion') + '&after=' + encodeURIComponent(_cch.lastDoc), {
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
+                });
+                if (!res.ok) throw new Error('Failed');
+                const data = await res.json();
+                const more = data.docs || [];
+                _cch.lastDoc = more.length > 0 ? more[more.length-1].updated_at : null;
+                _cch.all = [..._cch.all, ...more];
+                _cchRender(_cch.all);
+                document.getElementById('cchLoadMoreWrap').style.display = (_cch.lastDoc && data.count === CCH_PAGE_SIZE) ? 'block' : 'none';
+            } catch(e) { console.error(e); }
+            finally {
+                _cch.loading = false;
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-chevron-down mr-1"></i>Load More'; }
+            }
+        };
+
+        window.deleteCCHSession = async function(id) {
+            if (!confirm('Delete this history entry?')) return;
+            const user = window._fbUser;
+            if (!user) return;
+            try {
+                const token = await user.getIdToken();
+                await fetch('./api/history.php?id=' + encodeURIComponent(id), {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token }
+                });
+                _cch.all = _cch.all.filter(s => s.id !== id);
+                _cchRender(_cch.all);
+            } catch(e) { alert('Failed to delete. Please try again.'); }
+        };
+
+        function _cchEsc(s) {
+            return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+        function _cchFmtTime(ts) {
+            if (!ts) return '';
+            const d = new Date(ts);
+            return d.toLocaleString('en-HK',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+        }
+
+        function _cchRenderCard(s) {
+            const msgs = s.messages || [];
+            const userMsg = msgs.find(m => m.role === 'user');
+            const uc = userMsg ? userMsg.content || '' : '';
+            const topicMatch = uc.match(/Topic:\s*(.+)/);
+            const diffMatch  = uc.match(/Difficulty:\s*(.+)/i);
+            const topic = topicMatch ? topicMatch[1].trim() : (s.summary || '');
+            const diff  = diffMatch  ? diffMatch[1].trim() : '';
+            const time  = _cchFmtTime(s.updated_at);
+            const summary = s.summary || (topic + (diff ? ' · ' + diff : ''));
+            return `<div class="cch-card" id="cch-card-${s.id}">
+                <div class="cch-card-header" onclick="closeCCHistory();window.location.href='./code-completion.php?session=${s.id}'"
+                     role="button" tabindex="0"
+                     aria-label="Open Code Completion session"
+                     style="cursor:pointer"
+                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();closeCCHistory();window.location.href='./code-completion.php?session=${s.id}'}">
+                    <div style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#10b981,#059669);flex-shrink:0">
+                        <i class="fas fa-puzzle-piece" style="color:#fff;font-size:1rem"></i>
+                    </div>
+                    <div style="flex:1;min-width:0">
+                        <p style="font-weight:700;font-size:.8rem;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_cchEsc(topic.substring(0,60))}${diff ? ' · '+_cchEsc(diff) : ''}</p>
+                        <p style="font-size:.72rem;color:var(--text-secondary);margin-top:.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_cchEsc(summary.substring(0,70))}</p>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">
+                        <span style="font-size:.7rem;color:var(--text-secondary)">${_cchEsc(time)}</span>
+                        <button onclick="event.stopPropagation();deleteCCHSession('${s.id}')"
+                                style="width:28px;height:28px;border-radius:7px;border:none;cursor:pointer;background:rgba(239,68,68,.12);color:#ef4444;font-size:.7rem;display:flex;align-items:center;justify-content:center"
+                                title="Delete" aria-label="Delete">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                        <i class="fas fa-external-link-alt" title="Open in page" style="font-size:.75rem;color:var(--primary)"></i>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function _cchRender(sessions) {
+            const list = document.getElementById('cchList');
+            if (!sessions.length) {
+                list.innerHTML = `<div style="text-align:center;padding:3rem 1rem">
+                    <div style="width:48px;height:48px;border-radius:14px;background:rgba(16,185,129,.10);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem">
+                        <i class="fas fa-puzzle-piece" style="color:#10b981;font-size:1.3rem"></i>
+                    </div>
+                    <p style="font-weight:700;font-size:.9rem;color:var(--text-primary);margin-bottom:.35rem">No history yet</p>
+                    <p style="font-size:.78rem;color:var(--text-secondary)">Complete a code exercise to start building history.</p>
+                </div>`;
+                return;
+            }
+            list.innerHTML = sessions.map(s => _cchRenderCard(s)).join('');
+        }
     </script>
+
+    <!-- Code Completion History Panel -->
+    <div id="ccHistoryBackdrop" onclick="closeCCHistory()" aria-hidden="true"></div>
+    <div id="ccHistoryPanel" role="dialog" aria-modal="true" aria-label="Code Completion history">
+        <div id="ccHistoryPanelHeader">
+            <div style="display:flex;align-items:center;gap:.5rem">
+                <div style="width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#10b981,#059669);flex-shrink:0">
+                    <i class="fas fa-puzzle-piece" style="color:#fff;font-size:.85rem"></i>
+                </div>
+                <span style="font-weight:700;font-size:.95rem;color:var(--text-primary)">Code Completion History</span>
+            </div>
+            <button onclick="closeCCHistory()" aria-label="Close history"
+                    style="width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.05);color:var(--text-secondary);font-size:.85rem">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="ccHistoryPanelBody">
+            <div id="cchList"></div>
+            <div id="cchLoadMoreWrap" style="display:none;text-align:center;padding:.75rem 0">
+                <button id="cchLoadMoreBtn" onclick="loadMoreCCH()"
+                        style="border:1px solid var(--glass-border);background:var(--glass-bg);color:var(--text-primary);padding:.4rem 1.25rem;border-radius:10px;font-size:.8rem;font-weight:600;cursor:pointer">
+                    <i class="fas fa-chevron-down mr-1"></i> Load More
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

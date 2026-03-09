@@ -1193,7 +1193,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
                     ${w.pos ? `<div class="vocab-pos">(${escapeHtml(w.pos)})</div>` : ''}
                     ${w.def ? `<div class="vocab-def">📌 ${escapeHtml(w.def)}</div>` : ''}
                     ${w.example ? `<div class="vocab-example">"${escapeHtml(w.example)}"</div>` : ''}
-                    ${w.cn ? `<span class="vocab-cn">🇨🇳 ${escapeHtml(w.cn)}</span>` : ''}
+                    ${w.cn ? `<span class="vocab-cn">意思：${escapeHtml(w.cn)}</span>` : ''}
                     <button class="add-srs-btn" id="srs-add-${i}" onclick="handleAddSRS(${i})" aria-label="Add ${escapeHtml(w.word||'')} to SRS review">📌 Add to SRS</button>
                 </div>`).join('')}</div>`;
         }
@@ -2074,40 +2074,32 @@ Mix question types: definitions, fill-in-the-blank usage, synonyms, and contextu
         function _vohRenderCard(s) {
             const msgs = s.messages || [];
             const userMsg = msgs.find(m => m.role === 'user');
-            const aiMsg   = msgs.find(m => m.role === 'assistant');
             const uc = userMsg ? userMsg.content || '' : '';
             const topicMatch = uc.match(/Topic:\s*(.+)/);
             const levelMatch = uc.match(/Level:\s*(.+)/);
             const topic = topicMatch ? topicMatch[1].trim() : (s.summary || '');
             const level = levelMatch ? levelMatch[1].trim() : '';
-            const preview = aiMsg ? (aiMsg.content||'').substring(0,300) : '';
             const time = _vohFmtTime(s.updated_at);
+            const summary = s.summary || (topic + (level ? ' · ' + level : ''));
             return `<div class="voh-card" id="voh-card-${s.id}">
-                <div class="voh-card-header" onclick="_vohToggle('${s.id}')" role="button" tabindex="0"
-                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();_vohToggle('${s.id}')}">
+                <div class="voh-card-header" onclick="closeVocabHistory();window.location.href='./vocab.php?session=${s.id}'"
+                     role="button" tabindex="0"
+                     aria-label="Open Vocabulary session"
+                     style="cursor:pointer"
+                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();closeVocabHistory();window.location.href='./vocab.php?session=${s.id}'}">
                     <div style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#4f46e5,#7c3aed);flex-shrink:0;font-size:1.1rem">📚</div>
                     <div style="flex:1;min-width:0">
                         <p style="font-weight:700;font-size:.8rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_vohEsc(topic.substring(0,60))}${level ? ' · '+_vohEsc(level) : ''}</p>
-                        <p style="font-size:.7rem;color:var(--text-muted);margin-top:.1rem">${_vohEsc(time)}</p>
+                        <p style="font-size:.72rem;color:var(--text-muted);margin-top:.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_vohEsc(summary.substring(0,70))}</p>
                     </div>
                     <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">
+                        <span style="font-size:.7rem;color:var(--text-muted)">${_vohEsc(time)}</span>
                         <button onclick="event.stopPropagation();deleteVOHSession('${s.id}')"
                                 style="width:28px;height:28px;border-radius:7px;border:none;cursor:pointer;background:rgba(239,68,68,.12);color:#ef4444;font-size:.7rem;display:flex;align-items:center;justify-content:center"
                                 title="Delete" aria-label="Delete">
                             <i class="fas fa-trash-alt"></i>
                         </button>
-                        <i class="fas fa-chevron-down" id="voh-chev-${s.id}" style="font-size:.65rem;color:var(--text-muted);transition:transform .3s"></i>
-                    </div>
-                </div>
-                <div class="voh-card-body" id="voh-body-${s.id}">
-                    ${topic ? `<div style="margin-bottom:.5rem"><span style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted)">Topic</span><p style="font-size:.8rem;color:var(--text);margin-top:.1rem">${_vohEsc(topic)}</p></div>` : ''}
-                    ${level ? `<div style="margin-bottom:.5rem"><span style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted)">Level</span><p style="font-size:.8rem;color:var(--text);margin-top:.1rem">${_vohEsc(level)}</p></div>` : ''}
-                    ${preview ? `<div style="margin-bottom:.5rem"><span style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted)">Vocabulary Preview</span><p style="font-size:.78rem;color:var(--text);margin-top:.1rem;white-space:pre-wrap;max-height:160px;overflow-y:auto">${_vohEsc(preview)}</p></div>` : ''}
-                    <div style="padding-bottom:.5rem">
-                        <a href="./vocab.php?session=${s.id}" title="Restore this session"
-                           style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#4f46e5,#7c3aed);overflow:hidden;border:none;text-decoration:none">
-                            <img src="https://i.ibb.co/gMQh9L2S/Edu-Genius-AI.png" alt="Restore session" style="width:100%;height:100%;object-fit:cover">
-                        </a>
+                        <i class="fas fa-external-link-alt" title="Open in page" style="font-size:.75rem;color:var(--primary)"></i>
                     </div>
                 </div>
             </div>`;
