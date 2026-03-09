@@ -1245,35 +1245,110 @@ Return ONLY valid JSON (no markdown fences):
                 const uc = userMsg ? (userMsg.content || '') : '';
                 const topicMatch = uc.match(/Topic:\s*(.+)/);
                 const diffMatch  = uc.match(/Difficulty:\s*(.+)/i);
-                const topic = topicMatch ? topicMatch[1].trim() : '';
-                const diff  = diffMatch  ? diffMatch[1].trim().toLowerCase()  : 'easy';
+                const titleMatch = uc.match(/Title:\s*(.+)/);
+                const codeMatch  = uc.match(/\n\nExercise:\n([\s\S]*)/);
+                const topic          = topicMatch ? topicMatch[1].trim() : '';
+                const diff           = diffMatch  ? diffMatch[1].trim().toLowerCase() : 'easy';
+                const title          = titleMatch ? titleMatch[1].trim() : '';
+                const codeWithBlanks = codeMatch  ? codeMatch[1].trim() : '';
 
-                // Show history restoration banner in the results section
-                const historyBanner = `<div style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.25);border-radius:12px;padding:.6rem 1rem;margin-bottom:1.25rem;font-size:.8rem;color:#5b21b6;display:flex;align-items:center;gap:.5rem">
-                    <i class="fas fa-history"></i> <span>Restored from history &mdash; ${(data.summary || topic || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
-                </div>`;
-
-                // Try to parse stored marking result from AI message
-                let parsed = null;
+                // Parse marking result from AI message
+                let marking = null;
                 try {
                     const m = aiMsg.content.match(/\{[\s\S]*\}/);
-                    if (m) parsed = JSON.parse(m[0]);
+                    if (m) marking = JSON.parse(m[0]);
                 } catch (_) {}
+                if (!marking || !Array.isArray(marking.results)) {
+                    console.warn('_loadCCSession: could not parse marking result — session may be from an older format');
+                    return;
+                }
 
+                // Reconstruct student answers: prefer the stored array (new format), fall back to marking.results
+                const storedAnswers = Array.isArray(marking.studentAnswers) ? marking.studentAnswers : null;
+
+                // Reconstruct blanks array: prefer blanks stored in user message (new format — "Blanks JSON:" section),
+                // fall back to reconstructing from marking.results for backward compatibility with older history records.
+                // Note: user message sections must appear in the order: Topic / Difficulty / Title / Blanks JSON / Exercise.
+                let blanks = null;
+                try {
+                    const bMatch = uc.match(/\n\nBlanks JSON:\n([\s\S]*?)(?:\n\nExercise:|$)/);
+                    if (bMatch) blanks = JSON.parse(bMatch[1].trim());
+                } catch (_) {}
+                if (!Array.isArray(blanks) || !blanks.length) {
+                    // Backward compat: reconstruct minimal blank stubs from marking results.
+                    // hint and concept will be empty strings since they were not stored in older records.
+                    blanks = marking.results
+                        .map(r => ({ position: r.blankPosition, answer: r.correctAnswer || '', hint: '', concept: '' }))
+                        .sort((a, b) => a.position - b.position);
+                }
+
+                // Build the student answers array aligned with the blanks array
+                const studentAnswers = blanks.map((b, i) => {
+                    if (storedAnswers && storedAnswers[i] !== undefined) return storedAnswers[i];
+                    const r = marking.results.find(r => r.blankPosition === b.position);
+                    return r ? (r.studentAnswer || '') : '';
+                });
+
+                // Restore form fields
                 if (topic && document.getElementById('topic-input')) {
                     document.getElementById('topic-input').value = topic;
                 }
 
-                // Show results panel with restored data
-                const scoreEl = document.getElementById('score-section');
+                // Restore difficulty state and pill highlight
+                currentDifficulty = DIFF_CONFIG[diff] ? diff : 'easy';
+                document.querySelectorAll('.diff-pill').forEach(p => p.classList.remove('active'));
+                const activePill = document.querySelector(`.diff-pill[data-diff="${currentDifficulty}"]`);
+                if (activePill) activePill.classList.add('active');
+
+                // Reconstruct exercise object
+                const ex = {
+                    title:             title,
+                    description:       '',
+                    codeWithBlanks:    codeWithBlanks,
+                    blanks:            blanks,
+                    learningObjectives: []
+                };
+                currentExercise = ex;
+                markingResult   = marking;
+
+                // Render the exercise panel (shows code + answer rows)
+                renderExercise(ex);
+
+                // Populate answer inputs with the stored student answers (read-only)
+                blanks.forEach((b, i) => {
+                    const inp = document.getElementById(`blank-input-${i}`);
+                    if (!inp) return;
+                    inp.value    = studentAnswers[i] || '';
+                    inp.disabled = true;
+                    const r = marking.results.find(r => r.blankPosition === b.position);
+                    if (r) {
+                        inp.classList.remove('correct', 'wrong');
+                        inp.classList.add(r.isCorrect ? 'correct' : 'wrong');
+                    }
+                });
+
+                // Disable submit button (read-only session)
+                const submitBtn = document.getElementById('submit-btn');
+                if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Restored session'; }
+
+                // Show the results panel with full detail
                 const resultsEl = document.getElementById('results-panel');
                 if (resultsEl) resultsEl.style.display = '';
-                if (scoreEl) {
-                    scoreEl.innerHTML = historyBanner + (parsed
-                        ? `<div style="text-align:center;padding:1.5rem"><p class="font-bold" style="color:var(--primary)">${data.summary || topic}</p><p style="font-size:.85rem;color:var(--text-secondary);margin-top:.4rem">Score: ${parsed.overallScore ?? '?'}/${parsed.totalBlanks ?? '?'} · ${diff} difficulty</p></div>`
-                        : `<pre style="white-space:pre-wrap;font-size:.82rem">${aiMsg.content.substring(0,2000)}</pre>`);
-                }
-                if (resultsEl) resultsEl.scrollIntoView({ behavior:'smooth', block:'start' });
+                renderResults(marking, ex, studentAnswers);
+
+                // Prepend history banner to score section
+                const safeLabel = (data.summary || topic || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                const historyBanner = `<div style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.25);border-radius:12px;padding:.6rem 1rem;margin-bottom:1.25rem;font-size:.8rem;color:#5b21b6;display:flex;align-items:center;gap:.5rem">
+                    <i class="fas fa-history"></i> <span>Restored from history &mdash; ${safeLabel}</span>
+                </div>`;
+                const scoreEl = document.getElementById('score-section');
+                if (scoreEl) scoreEl.innerHTML = historyBanner + scoreEl.innerHTML;
+
+                // Update step indicator to show all steps complete
+                goToStep(3);
+
+                // Scroll to results
+                if (resultsEl) resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } catch(e) {
                 console.warn('Failed to load code completion history session:', e);
             }
@@ -1288,8 +1363,13 @@ Return ONLY valid JSON (no markdown fences):
                 const total = marking.totalBlanks ?? ex.blanks.length;
                 // Sanitize topic: strip control characters and limit length
                 const safeTopic = String(topic).replace(/[\x00-\x1f\x7f]/g, '').substring(0, 200);
-                const userContent = `Topic: ${safeTopic}\nDifficulty: ${difficulty}\nTitle: ${ex.title || ''}\n\nExercise:\n${ex.codeWithBlanks || ''}`;
-                const aiContent   = JSON.stringify(marking);
+                // Store blanks JSON for accurate restoration (hints, concepts, correct answers)
+                const blanksJson = JSON.stringify((ex.blanks || []).map(b => ({
+                    position: b.position, answer: b.answer || '', hint: b.hint || '', concept: b.concept || ''
+                })));
+                const userContent = `Topic: ${safeTopic}\nDifficulty: ${difficulty}\nTitle: ${ex.title || ''}\n\nBlanks JSON:\n${blanksJson}\n\nExercise:\n${ex.codeWithBlanks || ''}`;
+                // Store studentAnswers alongside marking so restoration can render accurate per-blank answers
+                const aiContent   = JSON.stringify({ ...marking, studentAnswers: studentAnswers || [] });
                 const res = await fetch('./api/history.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
