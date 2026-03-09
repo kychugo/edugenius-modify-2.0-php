@@ -2532,7 +2532,7 @@
         function _hpToolIcon(tool) {
             const m = {'Ask AI':'robot','Dictionary AI':'book','Guide Learning':'compass',
                        'Error Analysis':'search-plus',
-                       'Code Review':'__img__https://i.ibb.co/gMQh9L2S/Edu-Genius-AI.png',
+                       'Code Review':'code',
                        'Exam Paper Generator':'file-alt',
                        'English Writing':'pen-fancy','Vocabulary Generator':'lightbulb',
                        '文言文翻譯':'scroll','文樞翻譯':'scroll','Vocabulary':'lightbulb'};
