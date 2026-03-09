@@ -1158,6 +1158,8 @@
                     if (res.ok) {
                         const data = await res.json();
                         _historyIds[type] = data.id;
+                        // Generate AI title asynchronously (non-blocking)
+                        _generateAITitle(type, userMsg, aiMsg, token, data.id);
                     }
                 } else {
                     await fetch('./api/history.php?id=' + encodeURIComponent(_historyIds[type]), {
@@ -1170,6 +1172,36 @@
                 console.warn('History save failed:', e);
             }
         };
+
+        async function _generateAITitle(type, userMsg, aiMsg, token, sessionId) {
+            try {
+                const titlePrompt = `Generate a concise chat title (5 words or fewer) that summarises this conversation. Return only the title text, no punctuation or quotes.\n\nUser: ${userMsg.substring(0, 200)}\nAI: ${aiMsg.substring(0, 200)}`;
+                const res = await fetch('./api/ai_proxy.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
+                    body: JSON.stringify({
+                        subject: 'English',
+                        mode: 'ask',
+                        model: 'gemini-fast',
+                        stream: false,
+                        messages: [{ role: 'user', content: titlePrompt }],
+                        max_tokens: 20,
+                        temperature: 0.7
+                    })
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                const title = (data.choices?.[0]?.message?.content || '').trim().replace(/^["']|["']$/g, '').substring(0, 100);
+                if (!title) return;
+                await fetch('./api/history.php?id=' + encodeURIComponent(sessionId), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
+                    body: JSON.stringify({ summary: title })
+                });
+            } catch (e) {
+                console.warn('AI title generation failed:', e);
+            }
+        }
 
         window.deleteHistorySession = async function(userId, sessionId) {
             const token = await getIdToken();
@@ -1311,7 +1343,7 @@
                     name: '文樞--古典文學互動學習平台',
                     icon: 'fas fa-scroll',
                     description: '古典文學互動學習',
-                    action: () => window.open('./mensyu2.php?back=' + encodeURIComponent(subject), '_blank'),
+                    action: () => { window.location.href = './mensyu2.php?back=' + encodeURIComponent(subject); },
                     color: 'from-red-400 to-red-600',
                     iconColorClass: 'text-white'
                 });
@@ -1323,7 +1355,7 @@
                         name: 'English Writing Practice',
                         icon: 'fas fa-pen-fancy',
                         description: 'Improve your English writing skills',
-                        action: () => window.open('./eng-writing.php?back=' + encodeURIComponent(subject), '_blank'),
+                        action: () => { window.location.href = './eng-writing.php?back=' + encodeURIComponent(subject); },
                         color: 'from-teal-400 to-teal-600',
                         iconColorClass: 'text-teal-900 dark:text-white'
                     },
@@ -1331,7 +1363,7 @@
                         name: 'Vocabulary Generator',
                         icon: 'fas fa-lightbulb',
                         description: 'Generate custom vocabulary lists',
-                        action: () => window.open('./vocab.php?back=' + encodeURIComponent(subject) + '#generator', '_blank'),
+                        action: () => { window.location.href = './vocab.php?back=' + encodeURIComponent(subject) + '#generator'; },
                         color: 'from-yellow-400 to-yellow-500',
                         iconColorClass: 'text-yellow-900 dark:text-white'
                     },
@@ -1339,7 +1371,7 @@
                         name: 'Vocabulary Quiz',
                         icon: 'fas fa-question-circle',
                         description: 'Test your vocabulary knowledge',
-                        action: () => window.open('./vocab.php?back=' + encodeURIComponent(subject) + '#quiz', '_blank'),
+                        action: () => { window.location.href = './vocab.php?back=' + encodeURIComponent(subject) + '#quiz'; },
                         color: 'from-red-400 to-red-600',
                         iconColorClass: 'text-white'
                     }
@@ -1351,7 +1383,7 @@
                     name: 'Exam Paper Generator',
                     icon: 'fas fa-file-signature',
                     description: 'Generate practice exam papers',
-                    action: () => window.open('./exam.php?back=' + encodeURIComponent(subject), '_blank'),
+                    action: () => { window.location.href = './exam.php?back=' + encodeURIComponent(subject); },
                     color: 'from-orange-400 to-orange-500',
                     iconColorClass: 'text-orange-900 dark:text-white'
                 });
@@ -1362,7 +1394,7 @@
                     name: 'ICT Coding Review Platform',
                     icon: 'fas fa-terminal',
                     description: 'Review and improve your code',
-                    action: () => window.open('./coding.php?back=' + encodeURIComponent(subject), '_blank'),
+                    action: () => { window.location.href = './coding.php?back=' + encodeURIComponent(subject); },
                     color: 'from-cyan-400 to-cyan-500',
                     iconColorClass: 'text-cyan-900 dark:text-white'
                 });
@@ -1370,7 +1402,7 @@
                     name: 'Code Completion Exercise',
                     icon: 'fas fa-puzzle-piece',
                     description: 'Fill-in-the-blank Python exercises with AI feedback',
-                    action: () => window.open('./code-completion.php?back=' + encodeURIComponent(subject), '_blank'),
+                    action: () => { window.location.href = './code-completion.php?back=' + encodeURIComponent(subject); },
                     color: 'from-emerald-400 to-emerald-600',
                     iconColorClass: 'text-white'
                 });
@@ -1403,21 +1435,21 @@
             } else if (toolName === 'Guide Learning') {
                 showAI(subject, 'guideLearning');
             } else if (toolName === '文樞--古典文學互動學習平台') {
-                window.open('./mensyu2.php?back=' + encodeURIComponent(subject), '_blank');
+                window.location.href = './mensyu2.php?back=' + encodeURIComponent(subject);
             } else if (toolName === 'English Writing Practice') {
-                window.open('./eng-writing.php?back=' + encodeURIComponent(subject), '_blank');
+                window.location.href = './eng-writing.php?back=' + encodeURIComponent(subject);
             } else if (toolName === 'Error Analysis') {
                 showAI(subject, 'errorAnalysis');
             } else if (toolName === 'ICT Coding Review Platform') {
-                window.open('./coding.php?back=' + encodeURIComponent(subject), '_blank');
+                window.location.href = './coding.php?back=' + encodeURIComponent(subject);
             } else if (toolName === 'Code Completion Exercise') {
-                window.open('./code-completion.php?back=' + encodeURIComponent(subject), '_blank');
+                window.location.href = './code-completion.php?back=' + encodeURIComponent(subject);
             } else if (toolName === 'Exam Paper Generator') {
-                window.open('./exam.php?back=' + encodeURIComponent(subject), '_blank');
+                window.location.href = './exam.php?back=' + encodeURIComponent(subject);
             } else if (toolName === 'Vocabulary Generator') {
-                window.open('./vocab.php?back=' + encodeURIComponent(subject) + '#generator', '_blank');
+                window.location.href = './vocab.php?back=' + encodeURIComponent(subject) + '#generator';
             } else if (toolName === 'Vocabulary Quiz') {
-                window.open('./vocab.php?back=' + encodeURIComponent(subject) + '#quiz', '_blank');
+                window.location.href = './vocab.php?back=' + encodeURIComponent(subject) + '#quiz';
             }
         }
 

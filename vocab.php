@@ -979,6 +979,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
                                 onclick="switchTab('quiz', true)">
                             ✏️ Quiz These Words
                         </button>
+                        <button type="button" id="genSeedBtn" class="btn btn-ghost" onclick="randomizeGenSeed()" title="Generate a new random seed for different word selection">
+                            🎲 Randomize
+                        </button>
+                    </div>
+                    <div style="margin-top:0.5rem;font-size:0.78rem;color:var(--text-muted)">
+                        Seed: <span id="genSeedDisplay" style="font-family:monospace;font-weight:600"></span>
+                        <span style="margin-left:0.5rem;color:var(--text-muted);font-size:0.73rem">(same seed = same words)</span>
                     </div>
                 </form>
             </div>
@@ -1035,6 +1042,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
                         <button type="submit" id="quizStartBtn" class="btn btn-red">
                             🚀 Start Quiz
                         </button>
+                        <button type="button" id="quizSeedBtn" class="btn btn-ghost" onclick="randomizeQuizSeed()" title="Generate a new random seed for different questions">
+                            🎲 Randomize
+                        </button>
+                    </div>
+                    <div style="margin-top:0.5rem;font-size:0.78rem;color:var(--text-muted)">
+                        Seed: <span id="quizSeedDisplay" style="font-family:monospace;font-weight:600"></span>
+                        <span style="margin-left:0.5rem;color:var(--text-muted);font-size:0.73rem">(same seed = same questions)</span>
                     </div>
                 </form>
             </div>
@@ -1201,12 +1215,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
             const genOut = document.getElementById('genOutput');
             const quizFromGenBtn = document.getElementById('startQuizFromGenBtn');
 
+            // Randomize seed on each generation for fresh results
+            randomizeGenSeed();
+
             setLoading(genBtn, true, 'Generating…');
             quizFromGenBtn.classList.add('hidden');
             genOut.innerHTML = `<div class="loading-text"><span class="spinner spinner-dark"></span> Generating ${count} vocabulary words on "${topic}"…</div>`;
 
             const prompt =
 `Generate a vocabulary list of exactly ${count} English words for Hong Kong DSE students at ${level} level on the topic of "${topic}".
+(Variation seed: ${_genSeed})
 
 For EACH word, use this exact format:
 1. [WORD] ([part of speech])
@@ -1360,10 +1378,52 @@ Important: Output exactly ${count} words. Use Traditional Chinese (繁體中文)
         const SRS_DEFAULT_REPETITIONS = 0;
         const SRS_DEFAULT_EASE_FACTOR = 2.5;
 
-        function shuffle(arr) {
+        // ---- Seeded PRNG (Mulberry32) ----
+        // Mulberry32 is a fast, high-quality 32-bit seeded PRNG.
+        // The constants (0x6D2B79F5, etc.) are part of the algorithm design.
+        function mulberry32(seed) {
+            return function() {
+                seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+                let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+                t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            };
+        }
+
+        function generateSeed() {
+            return Math.floor(Math.random() * 999983) + 1;
+        }
+
+        // Seed state for generator and quiz
+        let _genSeed = generateSeed();
+        let _quizSeed = generateSeed();
+
+        function randomizeGenSeed() {
+            _genSeed = generateSeed();
+            const el = document.getElementById('genSeedDisplay');
+            if (el) el.textContent = _genSeed;
+        }
+        function randomizeQuizSeed() {
+            _quizSeed = generateSeed();
+            const el = document.getElementById('quizSeedDisplay');
+            if (el) el.textContent = _quizSeed;
+        }
+
+        // Initialize seed displays on load
+        (function() {
+            const genEl = document.getElementById('genSeedDisplay');
+            if (genEl) genEl.textContent = _genSeed;
+            const quizEl = document.getElementById('quizSeedDisplay');
+            if (quizEl) quizEl.textContent = _quizSeed;
+        })();
+
+        // shuffle: Fisher-Yates shuffle. Pass a numeric seed for reproducible results,
+        // or omit for a fully random shuffle (used by SRS which always wants fresh order).
+        function shuffle(arr, seed) {
             const a = [...arr];
+            const rand = seed !== undefined ? mulberry32(seed) : Math.random.bind(Math);
             for (let i = a.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
+                const j = Math.floor(rand() * (i + 1));
                 [a[i], a[j]] = [a[j], a[i]];
             }
             return a;
@@ -1457,7 +1517,7 @@ Important: Output exactly ${count} words. Use Traditional Chinese (繁體中文)
                 return;
             }
 
-            srsQueue = shuffle(due);
+            srsQueue = shuffle(due, generateSeed());
             srsIdx = 0;
             panel.innerHTML = `<div class="card">
                 <div class="card-header"><div class="card-icon icon-yellow">🧠</div>
@@ -1539,6 +1599,7 @@ Important: Output exactly ${count} words. Use Traditional Chinese (繁體中文)
 
         async function startSentenceCompletionQuiz(topic, level, quizBtn, quizOut) {
             const prompt = `Generate 5 sentence completion exercises for Hong Kong DSE English students at ${level} level on the topic of "${topic}".
+(Variation seed: ${_quizSeed})
 
 For each exercise, provide a sentence with one key vocabulary word replaced by ___.
 Return ONLY valid JSON (no other text):
@@ -1614,6 +1675,7 @@ Return ONLY valid JSON (no other text):
 
         async function startMatchingQuiz(topic, level, quizBtn, quizOut) {
             const prompt = `Generate 5 vocabulary matching pairs for Hong Kong DSE English students at ${level} level on the topic of "${topic}".
+(Variation seed: ${_quizSeed})
 Return ONLY valid JSON:
 {
   "pairs": [
@@ -1633,7 +1695,7 @@ Return ONLY valid JSON:
             if (!parsed?.pairs?.length) { quizOut.innerHTML = `<div class="empty-state"><p style="color:#dc2626;">Could not parse. Please try again.</p></div>`; return; }
 
             const pairs = parsed.pairs.slice(0, 5);
-            const shuffledDefs = shuffle(pairs);
+            const shuffledDefs = shuffle(pairs, _quizSeed);
             let selectedWord = null, selectedDef = null;
             let matched = 0;
 
@@ -1715,6 +1777,9 @@ Return ONLY valid JSON:
             const quizBtn = document.getElementById('quizStartBtn');
             const quizOut = document.getElementById('quizOutput');
 
+            // Randomize seed on each quiz start for fresh questions
+            randomizeQuizSeed();
+
             setLoading(quizBtn, true, 'Generating Quiz…');
             const quizTypeLabels = { mcq: 'multiple choice', sc: 'sentence completion', match: 'matching' };
             quizOut.innerHTML = `<div class="loading-text"><span class="spinner spinner-dark"></span> Generating ${quizTypeLabels[currentQuizType] || 'quiz'} on "${escapeHtml(topic)}"…</div>`;
@@ -1731,6 +1796,7 @@ Return ONLY valid JSON:
             // MCQ (existing logic)
             const prompt = `Generate a vocabulary quiz for Hong Kong DSE English students at ${level} level on the topic of "${topic}".
 Create exactly 5 multiple-choice questions.
+(Variation seed: ${_quizSeed})
 
 Return ONLY valid JSON (no other text, no markdown code blocks) in this format:
 {
@@ -1860,7 +1926,7 @@ Mix question types: definitions, fill-in-the-blank usage, synonyms, and contextu
             if (!user) return;
             try {
                 const token = await user.getIdToken();
-                await fetch('./api/history.php', {
+                const res = await fetch('./api/history.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
                     body: JSON.stringify({
@@ -1874,10 +1940,37 @@ Mix question types: definitions, fill-in-the-blank usage, synonyms, and contextu
                         ]
                     })
                 });
+                if (res.ok) {
+                    const data = await res.json();
+                    _generateAIVocabTitle(token, data.id, tool, topic, level, content);
+                }
             } catch (e) {
                 console.warn('History save failed:', e);
             }
         };
+
+        async function _generateAIVocabTitle(token, sessionId, tool, topic, level, content) {
+            try {
+                const userMsg = `${tool}: ${topic} (${level})`;
+                const titlePrompt = `Generate a concise chat title (5 words or fewer) that summarises this vocabulary session. Return only the title text, no punctuation or quotes.\n\nSession: ${userMsg}\nContent preview: ${content.substring(0, 150)}`;
+                const res = await fetch('./api/ai_proxy.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
+                    body: JSON.stringify({ subject: 'English', mode: 'ask', model: 'gemini-fast', stream: false, messages: [{ role: 'user', content: titlePrompt }], max_tokens: 20, temperature: 0.7 })
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                const title = (data.choices?.[0]?.message?.content || '').trim().replace(/^["']|["']$/g, '').substring(0, 100);
+                if (!title) return;
+                await fetch('./api/history.php?id=' + encodeURIComponent(sessionId), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
+                    body: JSON.stringify({ summary: title })
+                });
+            } catch (e) {
+                console.warn('AI title generation failed:', e);
+            }
+        }
 
         // ── Vocabulary History Panel ────────────────────────────────
         let _voh = { all:[], lastDoc:null, loading:false };

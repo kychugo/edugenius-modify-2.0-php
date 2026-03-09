@@ -109,20 +109,32 @@ try {
         exit;
     }
 
-    // ── PUT (append messages) ─────────────────────────────────────────────
+    // ── PUT (append messages or update summary) ───────────────────────────
     if ($method === 'PUT') {
         $id   = $_GET['id'] ?? '';
         $body = json_decode(file_get_contents('php://input'), true) ?: [];
 
-        // Fetch existing messages
+        // Fetch existing record
         $stmt = $pdo->prepare(
-            'SELECT `messages` FROM `history` WHERE `id` = ? AND `user_id` = ? LIMIT 1'
+            'SELECT `messages`, `summary` FROM `history` WHERE `id` = ? AND `user_id` = ? LIMIT 1'
         );
         $stmt->execute([$id, $uid]);
         $row = $stmt->fetch();
         if (!$row) {
             http_response_code(404);
             echo json_encode(['error' => 'Not found']);
+            exit;
+        }
+
+        // If only updating summary (no messages in body)
+        if (isset($body['summary']) && !isset($body['messages'])) {
+            $newSummary = substr((string)$body['summary'], 0, 500);
+            $stmt = $pdo->prepare(
+                'UPDATE `history` SET `summary` = ?, `updated_at` = NOW()
+                  WHERE `id` = ? AND `user_id` = ?'
+            );
+            $stmt->execute([$newSummary, $id, $uid]);
+            echo json_encode(['ok' => true]);
             exit;
         }
 

@@ -1817,7 +1817,9 @@ async function startQuiz() {
     document.getElementById('quiz-result').classList.add('hidden');
 
     const text = document.getElementById('classical-text').value.trim() || authorsData[currentAuthor].works[currentLevel].content;
+    const quizSeed = Math.floor(Math.random() * 999983) + 1;
     const prompt = `請基於以下文言文內容生成5道中文繁體選擇題，用來測試學習者的理解。
+（隨機種子：${quizSeed}）
 文言文內容：
 ${text},
 題目要求：
@@ -2142,7 +2144,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!user) return;
             try {
                 const token = await user.getIdToken();
-                await fetch('./api/history.php', {
+                const res = await fetch('./api/history.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
                     body: JSON.stringify({
@@ -2156,10 +2158,36 @@ document.addEventListener('DOMContentLoaded', function() {
                         ]
                     })
                 });
+                if (res.ok) {
+                    const data = await res.json();
+                    _generateAIMensyuTitle(token, data.id, userContent, aiContent);
+                }
             } catch (e) {
                 console.warn('History save failed:', e);
             }
         };
+
+        async function _generateAIMensyuTitle(token, sessionId, userContent, aiContent) {
+            try {
+                const titlePrompt = `Generate a concise chat title (5 words or fewer) that summarises this conversation. Return only the title text, no punctuation or quotes.\n\nUser: ${userContent.substring(0, 200)}\nAI: ${aiContent.substring(0, 200)}`;
+                const res = await fetch('./api/ai_proxy.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
+                    body: JSON.stringify({ subject: '中文', mode: 'ask', model: 'gemini-fast', stream: false, messages: [{ role: 'user', content: titlePrompt }], max_tokens: 20, temperature: 0.7 })
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                const title = (data.choices?.[0]?.message?.content || '').trim().replace(/^["']|["']$/g, '').substring(0, 100);
+                if (!title) return;
+                await fetch('./api/history.php?id=' + encodeURIComponent(sessionId), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'X-Firebase-Token': token },
+                    body: JSON.stringify({ summary: title })
+                });
+            } catch (e) {
+                console.warn('AI title generation failed:', e);
+            }
+        }
     </script>
 <script>
     // Set back button to return to the correct AI list page
