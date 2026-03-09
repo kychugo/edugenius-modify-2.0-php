@@ -330,6 +330,10 @@
                 <i class="fas fa-arrow-left"></i> Back
             </a>
             <div class="flex items-center gap-2">
+                <a href="./history.php?tool=Code+Completion" title="View Code Completion History" aria-label="View history"
+                        style="width:36px;height:36px;border-radius:50%;text-decoration:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(124,58,237,.1);color:var(--primary);font-size:.95rem;transition:all .2s">
+                    <i class="fas fa-history"></i>
+                </a>
                 <button id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode"
                         style="width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(124,58,237,.1);color:var(--primary);font-size:1rem;transition:all .2s">
                     <span class="theme-moon">🌙</span><span class="theme-sun">☀️</span>

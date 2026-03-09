@@ -2460,6 +2460,11 @@
             <div class="flex items-center gap-2">
                 <i class="fas fa-history" style="color:var(--primary);font-size:1.1rem"></i>
                 <span class="font-bold text-base" style="color:var(--text-primary)">Chat History</span>
+                <a href="./history.php" title="View Full History Page" aria-label="View full history page"
+                        class="w-7 h-7 flex items-center justify-center rounded-lg btn-secondary text-xs"
+                        style="flex-shrink:0;text-decoration:none">
+                    <i class="fas fa-external-link-alt" style="color:var(--primary)"></i>
+                </a>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
                 <select id="hpFilterTool" onchange="applyHPFilter()"

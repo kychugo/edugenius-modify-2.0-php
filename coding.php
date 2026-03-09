@@ -211,6 +211,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
                         style="width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(124,58,237,.1);color:var(--primary);font-size:.95rem;transition:all .2s">
                     <i class="fas fa-history"></i>
                 </button>
+                <a href="./history.php?tool=Code+Review" title="View Full Code Review History" aria-label="View full history"
+                        style="width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(124,58,237,.1);color:var(--primary);font-size:.75rem;transition:all .2s;text-decoration:none">
+                    <i class="fas fa-external-link-alt"></i>
+                </a>
                 <button id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode" style="width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(124,58,237,.1);color:var(--primary);font-size:1rem;transition:all .2s">
                     <span class="theme-moon">🌙</span><span class="theme-sun" style="display:none">☀️</span>
                 </button>
