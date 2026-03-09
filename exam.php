@@ -1047,45 +1047,34 @@ Requirements:
         function _exhRenderCard(s) {
             const msgs = s.messages || [];
             const userMsg = msgs.find(m => m.role === 'user');
-            const aiMsg   = msgs.find(m => m.role === 'assistant');
             const uc = userMsg ? userMsg.content || '' : '';
             const subMatch  = uc.match(/Subject:\s*(.+)/);
             const topicsMatch = uc.match(/Topics:\s*(.+)/);
-            const diffMatch = uc.match(/Difficulty:\s*(.+)/);
             const subject   = subMatch   ? subMatch[1].trim()   : (s.subject || '');
             const topics    = topicsMatch ? topicsMatch[1].trim() : '';
-            const difficulty = diffMatch ? diffMatch[1].trim()  : '';
-            const preview   = aiMsg ? (aiMsg.content||'').substring(0,500) : '';
             const time = _exhFmtTime(s.updated_at);
+            const summary = s.summary || (subject + (topics ? ' · ' + topics : ''));
             return `<div class="exh-card" id="exh-card-${s.id}">
-                <div class="exh-card-header" onclick="_exhToggle('${s.id}')" role="button" tabindex="0"
-                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();_exhToggle('${s.id}')}">
+                <div class="exh-card-header" onclick="closeExamHistory();window.location.href='./exam.php?session=${s.id}'"
+                     role="button" tabindex="0"
+                     aria-label="Open Exam Paper session"
+                     style="cursor:pointer"
+                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();closeExamHistory();window.location.href='./exam.php?session=${s.id}'}">
                     <div style="width:36px;height:36px;border-radius:10px;overflow:hidden;background:linear-gradient(135deg,#7c3aed,#06b6d4);flex-shrink:0">
                         <img src="https://i.ibb.co/gMQh9L2S/Edu-Genius-AI.png" alt="EduGenius" style="width:100%;height:100%;object-fit:cover">
                     </div>
                     <div style="flex:1;min-width:0">
                         <p style="font-weight:700;font-size:.8rem;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_exhEsc((s.summary||subject).substring(0,60))}</p>
-                        <p style="font-size:.7rem;color:var(--text-secondary);margin-top:.1rem">${_exhEsc(time)}</p>
+                        <p style="font-size:.72rem;color:var(--text-secondary);margin-top:.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_exhEsc(summary.substring(0,70))}</p>
                     </div>
                     <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">
+                        <span style="font-size:.7rem;color:var(--text-secondary)">${_exhEsc(time)}</span>
                         <button onclick="event.stopPropagation();deleteEXHSession('${s.id}')"
                                 style="width:28px;height:28px;border-radius:7px;border:none;cursor:pointer;background:rgba(239,68,68,.12);color:#ef4444;font-size:.7rem;display:flex;align-items:center;justify-content:center"
                                 title="Delete" aria-label="Delete">
                             <i class="fas fa-trash-alt"></i>
                         </button>
-                        <i class="fas fa-chevron-down" id="exh-chev-${s.id}" style="font-size:.65rem;color:var(--text-secondary);transition:transform .3s"></i>
-                    </div>
-                </div>
-                <div class="exh-card-body" id="exh-body-${s.id}">
-                    ${subject ? `<div style="margin-bottom:.5rem"><span style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-secondary)">Subject</span><p style="font-size:.8rem;color:var(--text-primary);margin-top:.1rem">${_exhEsc(subject)}</p></div>` : ''}
-                    ${topics ? `<div style="margin-bottom:.5rem"><span style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-secondary)">Topics</span><p style="font-size:.8rem;color:var(--text-primary);margin-top:.1rem">${_exhEsc(topics)}</p></div>` : ''}
-                    ${difficulty ? `<div style="margin-bottom:.5rem"><span style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-secondary)">Difficulty</span><p style="font-size:.8rem;color:var(--text-primary);margin-top:.1rem">${_exhEsc(difficulty)}</p></div>` : ''}
-                    ${preview ? `<div style="margin-bottom:.5rem"><span style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-secondary)">Paper Preview</span><p style="font-size:.78rem;color:var(--text-primary);margin-top:.1rem;white-space:pre-wrap;max-height:200px;overflow-y:auto">${_exhEsc(preview)}</p></div>` : ''}
-                    <div style="padding-bottom:.5rem">
-                        <a href="./exam.php?session=${s.id}" title="Restore this session"
-                           style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#06b6d4);overflow:hidden;border:none;text-decoration:none">
-                            <img src="https://i.ibb.co/gMQh9L2S/Edu-Genius-AI.png" alt="Restore session" style="width:100%;height:100%;object-fit:cover">
-                        </a>
+                        <i class="fas fa-external-link-alt" title="Open in page" style="font-size:.75rem;color:var(--primary)"></i>
                     </div>
                 </div>
             </div>`;

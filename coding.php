@@ -1029,37 +1029,33 @@ ${code.substring(0, 2000)}
         function _crhRenderCard(s) {
             const msgs = s.messages || [];
             const userMsg = msgs.find(m => m.role === 'user');
-            const aiMsg   = msgs.find(m => m.role === 'assistant');
             const uc = userMsg ? userMsg.content || '' : '';
             const qMatch = uc.match(/^Question:\s*([\s\S]*?)(?:\n\nCode:|$)/);
-            const cMatch = uc.match(/\n\nCode:\n([\s\S]*)/);
             const question = qMatch ? qMatch[1].trim() : uc.substring(0,150);
-            const code     = cMatch ? cMatch[1].trim() : '';
-            const feedback = aiMsg ? (aiMsg.content||'').substring(0,700) : '';
             const time = _crhFmtTime(s.updated_at);
+            const summary = s.summary || question.substring(0,70);
             return `<div class="crh-card" id="crh-card-${s.id}">
-                <div class="crh-card-header" onclick="_crhToggle('${s.id}')" role="button" tabindex="0"
-                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();_crhToggle('${s.id}')}">
+                <div class="crh-card-header" onclick="closeCRHistory();window.location.href='./coding.php?session=${s.id}'"
+                     role="button" tabindex="0"
+                     aria-label="Open Code Review session"
+                     style="cursor:pointer"
+                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();closeCRHistory();window.location.href='./coding.php?session=${s.id}'}">
                     <div style="width:36px;height:36px;border-radius:10px;overflow:hidden;background:linear-gradient(135deg,#7c3aed,#06b6d4);flex-shrink:0">
                         <img src="https://i.ibb.co/gMQh9L2S/Edu-Genius-AI.png" alt="EduGenius" style="width:100%;height:100%;object-fit:cover">
                     </div>
                     <div style="flex:1;min-width:0">
                         <p style="font-weight:700;font-size:.8rem;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_crhEsc(question.substring(0,60))}</p>
-                        <p style="font-size:.7rem;color:var(--text-secondary);margin-top:.1rem">${_crhEsc(time)}</p>
+                        <p style="font-size:.72rem;color:var(--text-secondary);margin-top:.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_crhEsc(summary.substring(0,70))}</p>
                     </div>
                     <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">
+                        <span style="font-size:.7rem;color:var(--text-secondary)">${_crhEsc(time)}</span>
                         <button onclick="event.stopPropagation();deleteCRHSession('${s.id}')"
                                 style="width:28px;height:28px;border-radius:7px;border:none;cursor:pointer;background:rgba(239,68,68,.12);color:#ef4444;font-size:.7rem;display:flex;align-items:center;justify-content:center"
                                 title="Delete" aria-label="Delete">
                             <i class="fas fa-trash-alt"></i>
                         </button>
-                        <i class="fas fa-chevron-down" id="crh-chev-${s.id}" style="font-size:.65rem;color:var(--text-secondary);transition:transform .3s"></i>
+                        <i class="fas fa-external-link-alt" title="Open in page" style="font-size:.75rem;color:var(--primary)"></i>
                     </div>
-                </div>
-                <div class="crh-card-body" id="crh-body-${s.id}">
-                    ${question ? `<div style="margin-bottom:.6rem"><span style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-secondary)">Question</span><p style="font-size:.8rem;color:var(--text-primary);margin-top:.15rem">${_crhEsc(question.substring(0,300))}</p></div>` : ''}
-                    ${code ? `<div style="margin-bottom:.6rem"><span style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-secondary)">Code Submitted</span><pre style="font-size:.72rem;background:#1a1a2e;color:#e2e8f0;padding:.6rem;border-radius:8px;overflow-x:auto;margin-top:.2rem;max-height:140px;overflow-y:auto;font-family:monospace">${_crhEsc(code.substring(0,800))}</pre></div>` : ''}
-                    ${feedback ? `<div><span style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-secondary)">AI Feedback</span><p style="font-size:.78rem;color:var(--text-primary);margin-top:.15rem;white-space:pre-wrap;max-height:180px;overflow-y:auto">${_crhEsc(feedback)}</p></div>` : ''}
                 </div>
             </div>`;
         }
