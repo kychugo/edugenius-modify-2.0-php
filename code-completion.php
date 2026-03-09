@@ -1286,7 +1286,9 @@ Return ONLY valid JSON (no markdown fences):
                 const token = await user.getIdToken();
                 const score = marking.overallScore ?? 0;
                 const total = marking.totalBlanks ?? ex.blanks.length;
-                const userContent = `Topic: ${topic}\nDifficulty: ${difficulty}\nTitle: ${ex.title || ''}\n\nExercise:\n${ex.codeWithBlanks || ''}`;
+                // Sanitize topic: strip control characters and limit length
+                const safeTopic = String(topic).replace(/[\x00-\x1f\x7f]/g, '').substring(0, 200);
+                const userContent = `Topic: ${safeTopic}\nDifficulty: ${difficulty}\nTitle: ${ex.title || ''}\n\nExercise:\n${ex.codeWithBlanks || ''}`;
                 const aiContent   = JSON.stringify(marking);
                 const res = await fetch('./api/history.php', {
                     method: 'POST',
@@ -1294,7 +1296,7 @@ Return ONLY valid JSON (no markdown fences):
                     body: JSON.stringify({
                         tool: 'Code Completion',
                         subject: 'ICT',
-                        summary: `${topic} (${difficulty}) — ${score}/${total}`,
+                        summary: `${safeTopic} (${difficulty}) — ${score}/${total}`,
                         messages: [
                             { role: 'user',      content: userContent },
                             { role: 'assistant', content: aiContent  }
@@ -1304,7 +1306,7 @@ Return ONLY valid JSON (no markdown fences):
                 if (!res.ok) return;
                 const saved = await res.json();
                 // Generate AI title asynchronously
-                if (saved && saved.id) _generateCCTitle(saved.id, topic, difficulty, score, total);
+                if (saved && saved.id) _generateCCTitle(saved.id, safeTopic, difficulty, score, total);
             } catch(e) {
                 console.warn('History save failed:', e);
             }
