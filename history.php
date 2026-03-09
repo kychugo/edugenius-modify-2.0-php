@@ -221,6 +221,7 @@
                     <option value="Exam Paper Generator">Exam Paper</option>
                     <option value="English Writing">English Writing</option>
                     <option value="Vocabulary Generator">Vocabulary</option>
+                    <option value="Code Completion">Code Completion</option>
                     <option value="文言文翻譯">文言文翻譯</option>
                     <option value="文樞翻譯">文樞翻譯</option>
                 </select>
@@ -274,6 +275,17 @@
             (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
         }
+
+        // ── Tool → Page redirect map ─────────────────────────────────────
+        const TOOL_PAGE_MAP = {
+            'Code Review':          'coding.php',
+            'Exam Paper Generator': 'exam.php',
+            'Vocabulary Generator': 'vocab.php',
+            'Code Completion':      'code-completion.php',
+            'English Writing':      'eng-writing.php',
+            '文言文翻譯':            'mensyu-tran.php',
+            '文樞翻譯':             'mensyu2.php'
+        };
 
         // ── Helpers ──────────────────────────────────────────────────────
         function escapeHtml(str) {
@@ -397,6 +409,10 @@
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0">
                         <span class="text-xs font-medium" style="color:var(--text-secondary)">${escapeHtml(time)}</span>
+                        ${TOOL_PAGE_MAP[s.tool] ? `<a href="./${TOOL_PAGE_MAP[s.tool]}?session=${encodeURIComponent(s.id)}" onclick="event.stopPropagation()"
+                                class="btn-secondary w-8 h-8 flex items-center justify-center rounded-lg text-xs" title="Go to ${escapeHtml(s.tool || '')}">
+                            <i class="fas fa-external-link-alt"></i>
+                        </a>` : ''}
                         <button onclick="event.stopPropagation();deleteSession('${s.id}')"
                                 class="btn-danger w-8 h-8 flex items-center justify-center rounded-lg text-xs" title="Delete">
                             <i class="fas fa-trash-alt"></i>
@@ -466,6 +482,19 @@
 
         async function initialLoad(userId) {
             _userId = userId;
+            // Pre-apply tool filter from URL parameter
+            const urlTool = new URLSearchParams(window.location.search).get('tool');
+            if (urlTool) {
+                const sel = document.getElementById('filterTool');
+                // Find matching option (exact or case-insensitive)
+                for (const opt of sel.options) {
+                    if (opt.value === urlTool || opt.value.toLowerCase() === urlTool.toLowerCase()) {
+                        sel.value = opt.value;
+                        _filterTool = opt.value;
+                        break;
+                    }
+                }
+            }
             try {
                 const result = await window._loadHistoryFn(userId, null);
                 _allSessions = result.docs;

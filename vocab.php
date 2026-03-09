@@ -892,6 +892,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
                         style="width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(79,70,229,.1);color:var(--primary);font-size:.95rem;transition:all .2s;flex-shrink:0">
                     <i class="fas fa-history"></i>
                 </button>
+                <a href="./history.php?tool=Vocabulary+Generator" title="View Full Vocabulary History" aria-label="View full vocabulary history"
+                        style="width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(79,70,229,.1);color:var(--primary);font-size:.75rem;transition:all .2s;flex-shrink:0;text-decoration:none">
+                    <i class="fas fa-external-link-alt"></i>
+                </a>
                 <button id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode"
                         style="width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(79,70,229,.1);color:var(--primary);font-size:1rem;transition:all .2s;flex-shrink:0">
                     <span class="theme-moon">🌙</span><span class="theme-sun" style="display:none">☀️</span>
@@ -1193,7 +1197,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
                     ${w.pos ? `<div class="vocab-pos">(${escapeHtml(w.pos)})</div>` : ''}
                     ${w.def ? `<div class="vocab-def">📌 ${escapeHtml(w.def)}</div>` : ''}
                     ${w.example ? `<div class="vocab-example">"${escapeHtml(w.example)}"</div>` : ''}
-                    ${w.cn ? `<span class="vocab-cn">🇨🇳 ${escapeHtml(w.cn)}</span>` : ''}
+                    ${w.cn ? `<span class="vocab-cn">🇨🇳 意思：${escapeHtml(w.cn)}</span>` : ''}
                     <button class="add-srs-btn" id="srs-add-${i}" onclick="handleAddSRS(${i})" aria-label="Add ${escapeHtml(w.word||'')} to SRS review">📌 Add to SRS</button>
                 </div>`).join('')}</div>`;
         }
