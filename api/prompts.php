@@ -5,6 +5,14 @@
  */
 
 function getSystemPrompt(string $subject, string $mode): string {
+    $modeAliases = [
+        'askAI' => 'ask',
+        'dictionaryAI' => 'dict',
+        'guideLearning' => 'guide',
+    ];
+
+    $mode = isset($modeAliases[$mode]) ? $modeAliases[$mode] : $mode;
+
     $prompts = [
         '中文' => [
             'ask' => '
