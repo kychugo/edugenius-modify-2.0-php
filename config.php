@@ -16,13 +16,13 @@ define('POLLINATIONS_API_KEY', 'sk_dk6t4GEymji9dVR9jPau4bB9RJYJ0JbP');
 define('POLLINATIONS_API_URL', 'https://gen.pollinations.ai/v1/chat/completions');
 
 // ── Firebase (Web SDK config – injected into HTML as JS, never hardcoded in pages) ──
-define('FIREBASE_API_KEY',          'AIzaSyAXCSDsibC9yTJed3cbRjmWmOIMv1A2cr8');
-define('FIREBASE_AUTH_DOMAIN',      'login-system-9c566.firebaseapp.com');
-define('FIREBASE_PROJECT_ID',       'login-system-9c566');
-define('FIREBASE_STORAGE_BUCKET',   'login-system-9c566.firebasestorage.app');
-define('FIREBASE_MESSAGING_ID',     '547074181663');
-define('FIREBASE_APP_ID',           '1:547074181663:web:6e3afd6c7c1ec6ae43232a');
-define('FIREBASE_MEASUREMENT_ID',   'G-09M3C3D6PT');
+define('FIREBASE_API_KEY',          'AIzaSyDuj9IBFWgQVKXuaQYjrFYkmM5JyqouTmk');
+define('FIREBASE_AUTH_DOMAIN',      'public-edugenius.firebaseapp.com');
+define('FIREBASE_PROJECT_ID',       'public-edugenius');
+define('FIREBASE_STORAGE_BUCKET',   'public-edugenius.firebasestorage.app');
+define('FIREBASE_MESSAGING_ID',     '1038536066504');
+define('FIREBASE_APP_ID',           '1:1038536066504:web:9ba878e0a948c0db83acfd');
+define('FIREBASE_MEASUREMENT_ID',   'G-G8GX0YKQB2');
 
 // ── AI Proxy ───────────────────────────────────────────────────────────────
 define('MAX_AI_TOKENS', 8192);

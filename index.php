@@ -1356,16 +1356,16 @@
                         icon: 'fas fa-pen-fancy',
                         description: 'Improve your English writing skills',
                         action: () => { window.location.href = './eng-writing.php?back=' + encodeURIComponent(subject); },
-                        color: 'from-teal-400 to-teal-600',
-                        iconColorClass: 'text-teal-900 dark:text-white'
+                        color: 'from-teal-500 to-teal-700',
+                        iconColorClass: 'text-white'
                     },
                     {
                         name: 'Vocabulary Generator',
                         icon: 'fas fa-lightbulb',
                         description: 'Generate custom vocabulary lists',
                         action: () => { window.location.href = './vocab.php?back=' + encodeURIComponent(subject) + '#generator'; },
-                        color: 'from-yellow-400 to-yellow-500',
-                        iconColorClass: 'text-yellow-900 dark:text-white'
+                        color: 'from-amber-500 to-amber-700',
+                        iconColorClass: 'text-white'
                     },
                     {
                         name: 'Vocabulary Quiz',
@@ -1384,8 +1384,8 @@
                     icon: 'fas fa-file-signature',
                     description: 'Generate practice exam papers',
                     action: () => { window.location.href = './exam.php?back=' + encodeURIComponent(subject); },
-                    color: 'from-orange-400 to-orange-500',
-                    iconColorClass: 'text-orange-900 dark:text-white'
+                    color: 'from-orange-500 to-orange-700',
+                    iconColorClass: 'text-white'
                 });
             }
 
@@ -1395,15 +1395,15 @@
                     icon: 'fas fa-terminal',
                     description: 'Review and improve your code',
                     action: () => { window.location.href = './coding.php?back=' + encodeURIComponent(subject); },
-                    color: 'from-cyan-400 to-cyan-500',
-                    iconColorClass: 'text-cyan-900 dark:text-white'
+                    color: 'from-cyan-600 to-cyan-800',
+                    iconColorClass: 'text-white'
                 });
                 tools.push({
                     name: 'Code Completion Exercise',
                     icon: 'fas fa-puzzle-piece',
                     description: 'Fill-in-the-blank Python exercises with AI feedback',
                     action: () => { window.location.href = './code-completion.php?back=' + encodeURIComponent(subject); },
-                    color: 'from-emerald-400 to-emerald-600',
+                    color: 'from-emerald-500 to-emerald-700',
                     iconColorClass: 'text-white'
                 });
             }
